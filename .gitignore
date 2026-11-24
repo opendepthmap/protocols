@@ -1,0 +1,24 @@
+# OS & Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Build / Tooling
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+dist/
+
+# Secrets (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*credentials*.json
+*service-account*.json

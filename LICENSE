@@ -1,0 +1,11 @@
+OpenDepthMap Protocols Dual Licensing Notice
+
+1. Specifications, Schemas, Documentation, and Sanitized Sample Datasets:
+   Dedicated to the public domain under CC0 1.0 Universal (CC0-1.0).
+   https://creativecommons.org/publicdomain/zero/1.0/
+
+2. Reference Tooling, Validators, and SDK Code:
+   Licensed under the MIT License.
+   Copyright (c) 2026 OpenDepthMap Contributors.
+
+Full license texts (CC0-1.0 and MIT) will be added in LICENSES/ prior to public release.
