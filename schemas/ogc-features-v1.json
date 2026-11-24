@@ -70,6 +70,7 @@
             "track_id",
             "depth_m",
             "vertical_datum",
+            "calibration_tier",
             "qartod_qc_flag",
             "iho_s44_order",
             "is_fuzzed",
@@ -83,6 +84,10 @@
             "vertical_datum": {
               "type": "string",
               "enum": ["UNREDUCED", "MLLW", "IGLD", "LOCAL_LAKE", "MANUAL_DATUM"]
+            },
+            "calibration_tier": {
+              "type": "string",
+              "enum": ["UNREDUCED", "TIDE_REDUCED", "SV_TIDE_CALIBRATED", "MOTION_COMPENSATED"]
             },
             "tvu_m": { "type": ["number", "null"] },
             "thu_m": { "type": ["number", "null"] },
@@ -143,8 +148,8 @@
           ],
           "properties": {
             "title": { "type": "string" },
-            "started_at": { "type": "string", "format": "date-time" },
-            "ended_at": { "type": "string", "format": "date-time" },
+            "started_at": { "type": "string", "format": "date-time", "description": "Quantized to 15-minute UTC buckets in public collections." },
+            "ended_at": { "type": "string", "format": "date-time", "description": "Quantized to 15-minute UTC buckets in public collections." },
             "sounding_count": { "type": "integer" },
             "min_depth_m": { "type": ["number", "null"] },
             "max_depth_m": { "type": ["number", "null"] },

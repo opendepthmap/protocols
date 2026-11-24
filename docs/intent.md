@@ -15,7 +15,7 @@ OpenDepthMap is an open-source, vendor-neutral bathymetric mapping ecosystem and
 1. **Financial and Navigational Barriers:** Commercial hydrographic survey rigs and Ultra-Short Baseline (USBL) positioning systems cost tens of thousands of dollars, placing precise bathymetric logging out of reach for individual divers, citizen scientists, and local search-and-recovery groups.
 2. **Closing the Nearshore "White Ribbon" Survey Gap:** Official hydrographic survey ships draw too much draft to safely survey shallow rocky coastlines, intertidal reefs, and kelp beds (under 10 to 15 meters depth), while satellite-derived bathymetry (SDB) fails in turbid, dark, or optically complex water.
 3. **Temporal Change Detection After Storms and Dredging:** Mobile sandbars, river mouths, and harbor approaches shift rapidly after storms and dredging operations. Open, repeatable survey logs with consistent datum reduction enable localized bathymetric differencing over time.
-4. **Rescuing Trapped Sonar Data from Proprietary Silos:** Recreational boaters and anglers generate vast quantities of single-beam sonar logs locked inside closed vendor formats (Lowrance `.sl2`/`.sl3`, Garmin `.rsd`, Humminbird `.son`). OpenDepthMap defines an open vault and standardized open GIS export pipeline (GeoParquet, OGC API - Features, IHO B-12 CSB, CF-NetCDF, COG, PMTiles).
+4. **Rescuing Trapped Sonar Data from Proprietary Silos:** Recreational boaters and anglers generate vast quantities of single-beam sonar logs locked inside closed vendor formats (Lowrance `.sl2`/`.sl3`, Garmin `.rsd`, Humminbird `.dat`/`.son`). OpenDepthMap launches on Day 1 with open, vendor-neutral formats (GPX, GeoJSON, CSV, NMEA 0183/2000, Subsurface `.ssrf`, Signal K) and adds proprietary binary parsers in Phase 1.5, exporting into open GIS standards (GeoParquet, OGC API - Features, IHO B-12 CSB, CF-NetCDF, COG, PMTiles).
 5. **Uncharted Inland Lakes, Quarries, and Reservoirs:** Millions of small inland water bodies lack official bathymetric charts. Community mapping with explicit freshwater sound-velocity and datum handling unlocks usable depth references for local divers, limnologists, and watershed managers.
 6. **Subsea Ecological Ground-Truthing and Hazard Mapping:** Raw depth soundings gain lasting scientific and practical value when paired with diver-verified substrate classifications, ecological tags (CMECS and Darwin Core), and geo-referenced media.
 
@@ -24,11 +24,11 @@ OpenDepthMap is an open-source, vendor-neutral bathymetric mapping ecosystem and
 ## 2. Core User Personas & Workflow Outcomes
 
 ### Persona 1: The Recreational Scuba Diver & Forager
-- **Needs:** High-contrast dark-water bathymetric map visuals, pre-dive route planning with leg distances and magnetic headings, planned-vs-actual track drift review, and strict privacy protection for sensitive reefs, ledges, and shoreline entry ramps.
-- **Phase 1 Outcome:** Zero-login dark-water map exploration, private-by-default dive vault, interactive polygon redaction, automatic 150.0 m shoreline entry-endpoint fuzzing before public sharing, pre-dive route drawing, and downloadable offline `.pmtiles` regional chart packs.
+- **Needs:** High-contrast dark-water bathymetric map visuals, trip and route planning with leg distances and magnetic headings, planned-vs-actual track drift review, and strict privacy protection for sensitive reefs, ledges, and shoreline entry ramps.
+- **Phase 1 Outcome:** Zero-login dark-water map exploration, private-by-default vault, user-controlled entry/exit trim sliders, interactive polygon redaction, optional shoreline H3-R8 endpoint blurring before public sharing, universal water route & survey transect planning, and downloadable offline `.pmtiles` regional chart packs.
 
 ### Persona 2: The Coastal Boater, Angler & Small-Craft Operator
-- **Needs:** Explicit vertical datum labeling (never conflating unreduced transducer depth with tide-reduced MLLW), shoal and channel depth clarity, and frictionless upload of existing chartplotter sonar logs (`.sl2`, `.sl3`, `.rsd`, `.son`, GPX, NMEA).
+- **Needs:** Explicit vertical datum labeling (never conflating unreduced transducer depth with tide-reduced MLLW), shoal and channel depth clarity, and frictionless upload of chartplotter sonar logs (GPX, NMEA 0183/2000, CSV on Day 1; Lowrance `.sl2`/`.sl3`, Humminbird `.zip`, Garmin `.rsd` in Phase 1.5).
 - **Phase 1 Outcome:** Direct upload of multi-vendor sonar logs paired with one-time vessel/transducer offset registration, automated NOAA CO-OPS MLLW tide reduction for US coastal waters, and real-time comparison between raw crowd soundings and tide-reduced MLLW depths.
 
 ### Persona 3: The DIY Hardware Maker & Embedded Tinkerer
@@ -50,7 +50,7 @@ Every client, service, and dataset conforming to OpenDepthMap protocols MUST uph
 3. **Immutable Raw Provenance:** Raw uncalibrated soundings are preserved separately from derived calibrated/reduced products so scientific corrections (sound velocity, motion compensation, tide reduction) can be audited and reproduced without losing original measurements.
 4. **Privacy-by-Default & Cultural Site Protection:**
    - All contributor uploads default to private (`is_public = false`).
-   - Prior to public exposure, any sounding within 150.0 m geodesic distance of a track start coordinate, track end coordinate, or registered shoreline launch ramp is stripped of exact coordinates and snapped to its enclosing H3 Resolution 8 cell centroid (`is_fuzzed = true`).
+   - Prior to public exposure, contributors control entry/exit privacy via interactive start/end trim sliders (erasing any chosen distance from the start or end of a track so short shore dives are never unintentionally destroyed) and an optional opt-in shoreline H3 Resolution 8 blur (`is_fuzzed = true`, user-configurable radius) when approximate nearshore context is preferred over trimming.
    - User-defined spatial redaction polygons suppress interior soundings from public exports and tiles.
    - Verified marine archaeologists, tribal nations, and site stewards can register protected site takedown polygons that suppress public exposure while preserving private contributor records.
 5. **Strict Credential Separation:** Personal User API Keys (`read:public`, `read:private_vault`, `write:tracks`, `write:waypoints`) are strictly separated from Device/Vessel API Keys (`write:tracks` only) so a lost or compromised field sensor cannot read private user vaults.

@@ -1,0 +1,13 @@
+# OpenDepthMap Sanitized Synthetic NMEA 2000 Fixture (CANboat / Actisense CSV PGN Format)
+# Columns: timestamp_utc,prio,pgn,src,dst,len,bytes_hex
+# PGN 129025 = Position Rapid Update (int32 lat * 1e-7 deg, int32 lon * 1e-7 deg, little-endian)
+# PGN 128267 = Water Depth (uint8 sid, uint32 depth * 0.01 m, int16 offset * 0.001 m, uint8 range)
+# PGN 130310 = Environmental Parameters (uint8 sid, uint16 water_temp * 0.01 K, ...)
+# Synthetic coordinates at 44.00000N / 44.00100N / 44.00200N, -68.00000W; 3 soundings at 8.50 m, 10.25 m, 12.00 m (offset +0.20 m ignored in raw_depth_m), water temp 12.00 C (285.15 K)
+2026-06-15T14:00:00.000Z,2,129025,15,255,8,00,de,39,1a,00,06,78,d7
+2026-06-15T14:00:00.100Z,3,128267,15,255,8,01,52,03,00,00,c8,00,ff
+2026-06-15T14:00:00.200Z,5,130310,15,255,8,01,63,6f,ff,ff,ff,ff,ff
+2026-06-15T14:00:10.000Z,2,129025,15,255,8,10,05,3a,1a,00,06,78,d7
+2026-06-15T14:00:10.100Z,3,128267,15,255,8,02,01,04,00,00,c8,00,ff
+2026-06-15T14:00:20.000Z,2,129025,15,255,8,20,2c,3a,1a,00,06,78,d7
+2026-06-15T14:00:20.100Z,3,128267,15,255,8,03,b0,04,00,00,c8,00,ff

@@ -40,6 +40,8 @@
     "raw_depth_m",
     "draft_offset_m",
     "vertical_datum",
+    "calibration_tier",
+    "iho_s44_order",
     "qartod_qc_flag",
     "provenance",
     "recorded_at_utc"
@@ -61,7 +63,7 @@
       "type": "string",
       "format": "uuid",
       "x-parquet-type": "BYTE_ARRAY (UTF8)",
-      "description": "Registered vessel or sensor rig UUID."
+      "description": "Registered vessel or sensor rig UUID in private archives; salted public pseudonym UUID in public archives to prevent cross-track vessel fingerprinting."
     },
     "geometry": {
       "type": "string",
@@ -71,7 +73,7 @@
     },
     "bbox": {
       "type": "object",
-      "x-parquet-type": "STRUCT<xmin: FLOAT, ymin: FLOAT, xmax: FLOAT, ymax: FLOAT>",
+      "x-parquet-type": "STRUCT<xmin: DOUBLE, ymin: DOUBLE, xmax: DOUBLE, ymax: DOUBLE>",
       "required": ["xmin", "ymin", "xmax", "ymax"],
       "properties": {
         "xmin": { "type": "number", "minimum": -180.0, "maximum": 180.0 },
@@ -79,7 +81,7 @@
         "xmax": { "type": "number", "minimum": -180.0, "maximum": 180.0 },
         "ymax": { "type": "number", "minimum": -90.0, "maximum": 90.0 }
       },
-      "description": "GeoParquet 1.1 bounding box covering struct for Parquet row-group predicate pushdown."
+      "description": "GeoParquet 1.1 bounding box covering struct (DOUBLE precision) for Parquet row-group predicate pushdown."
     },
     "lon": {
       "type": "number",
@@ -99,7 +101,7 @@
       "type": "string",
       "x-parquet-type": "BYTE_ARRAY (UTF8)",
       "pattern": "^[0-9a-f]{15}$",
-      "description": "H3 spatial index at Resolution 8 (~460 m edge length) used for 150 m shoreline fuzzing."
+      "description": "H3 spatial index at Resolution 8 (~460 m edge length) used when opt-in shoreline fuzzing is enabled."
     },
     "h3_index_r9": {
       "type": "string",
@@ -110,13 +112,12 @@
     "is_fuzzed": {
       "type": "boolean",
       "x-parquet-type": "BOOLEAN",
-      "description": "True when exact coordinates were replaced by the enclosing H3 Resolution 8 centroid due to 150 m shoreline/endpoint fuzzing."
+      "description": "True when exact coordinates were replaced by the enclosing H3 Resolution 8 centroid via opt-in shoreline/endpoint fuzzing."
     },
     "raw_depth_m": {
       "type": "number",
       "x-parquet-type": "DOUBLE",
-      "minimum": 0.0,
-      "description": "Immutable unreduced transducer depth in meters positive downward."
+      "description": "Immutable unreduced transducer depth in meters positive downward (corrupted negative readings are preserved non-destructively with qartod_qc_flag=4)."
     },
     "draft_offset_m": {
       "type": "number",

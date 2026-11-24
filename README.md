@@ -2,7 +2,7 @@
 
 Public repository defining OpenDepthMap's vendor-neutral bathymetric data schemas, hardware wire protocols, external API contracts, and sanitized sample fixtures.
 
-**Status:** Early specification and design phase. Schemas and reference fixtures will be populated here as milestones are finalized.
+**Status:** Phase 1 public API contracts (`openapi-v1.yaml`), geospatial schemas (`geoparquet-sounding-v1.json`, `ogc-features-v1.json`, `iho-b12-csb-v1.json`), and sanitized synthetic fixtures (`docs/samples/`) are locked and ready for Phase 1 implementation. Hardware wire protocols (`docs/protocols/`) remain placeholders for Phases 2 and 3.
 
 ## Repository Structure
 

@@ -99,8 +99,8 @@
             "properties": {
               "depth": {
                 "type": "number",
-                "minimum": 0.0,
-                "description": "Depth positive downward in meters in the header verticalDatum."
+                "minimum": -20.0,
+                "description": "Depth positive downward in meters in the header verticalDatum (negative values represent valid intertidal drying heights above chart datum)."
               },
               "time": {
                 "type": "string",

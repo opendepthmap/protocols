@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<divelog program="OpenDepthMap Synthetic Fixture" version="3">
+  <divesites>
+    <site uuid="00000000-0000-4000-8000-000000000101" name="Synthetic Quarry Dive Site (CC0-1.0)" gps="42.502500 -84.000000"/>
+  </divesites>
+  <dives>
+    <dive number="1" divesiteid="00000000-0000-4000-8000-000000000101" date="2026-07-04" time="16:30:00" duration="20:00 min">
+      <notes>Synthetic mid-water scuba dive profile fixture. MUST be classified as track_modality=DIVE_PROFILE and excluded from seafloor bathymetry, contours, and IHO B-12 CSB exports.</notes>
+      <divecomputer model="Synthetic Dive Computer">
+        <depth max="15.2 m" mean="9.4 m"/>
+        <temperature water="14.5 C"/>
+        <sample time="0:00 min" depth="0.0 m" temp="18.0 C"/>
+        <sample time="2:00 min" depth="6.0 m" temp="16.5 C"/>
+        <sample time="5:00 min" depth="15.2 m" temp="14.5 C"/>
+        <sample time="10:00 min" depth="14.8 m" temp="14.6 C"/>
+        <sample time="14:00 min" depth="8.0 m" temp="16.0 C"/>
+        <sample time="16:00 min" depth="5.0 m" temp="17.2 C"/>
+        <sample time="19:00 min" depth="5.0 m" temp="17.2 C"/>
+        <sample time="20:00 min" depth="0.0 m" temp="18.0 C"/>
+      </divecomputer>
+    </dive>
+  </dives>
+</divelog>
