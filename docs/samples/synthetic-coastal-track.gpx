@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1"
+     creator="OpenDepthMap Synthetic Fixture Generator v1.0.0"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">
+  <metadata>
+    <name>Synthetic Coastal Transect Fixture (CC0-1.0)</name>
+    <desc>Sanitized synthetic coastal transect with 20 pings, shoreline entry/exit endpoints for 150m H3-R8 fuzzing verification, and one injected 2.0x multipath spike at ping 10. Contains zero real user coordinates.</desc>
+    <time>2026-06-15T14:00:00Z</time>
+  </metadata>
+  <trk>
+    <name>Synthetic Coastal Transect 01</name>
+    <trkseg>
+      <trkpt lat="44.00000" lon="-68.00000"><time>2026-06-15T14:00:00Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>2.10</gpxtpx:depth><gpxtpx:wtemp>12.0</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00025" lon="-68.00000"><time>2026-06-15T14:00:10Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>2.65</gpxtpx:depth><gpxtpx:wtemp>12.0</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00050" lon="-68.00000"><time>2026-06-15T14:00:20Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>3.40</gpxtpx:depth><gpxtpx:wtemp>11.9</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00075" lon="-68.00000"><time>2026-06-15T14:00:30Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>4.20</gpxtpx:depth><gpxtpx:wtemp>11.9</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00100" lon="-68.00000"><time>2026-06-15T14:00:40Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>5.10</gpxtpx:depth><gpxtpx:wtemp>11.8</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00150" lon="-68.00000"><time>2026-06-15T14:00:50Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>6.50</gpxtpx:depth><gpxtpx:wtemp>11.8</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00200" lon="-68.00000"><time>2026-06-15T14:01:00Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>8.10</gpxtpx:depth><gpxtpx:wtemp>11.7</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00250" lon="-68.00000"><time>2026-06-15T14:01:10Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>9.60</gpxtpx:depth><gpxtpx:wtemp>11.6</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00300" lon="-68.00000"><time>2026-06-15T14:01:20Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>10.40</gpxtpx:depth><gpxtpx:wtemp>11.5</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00350" lon="-68.00000"><time>2026-06-15T14:01:30Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>21.20</gpxtpx:depth><gpxtpx:wtemp>11.5</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00400" lon="-68.00000"><time>2026-06-15T14:01:40Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>10.80</gpxtpx:depth><gpxtpx:wtemp>11.5</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00450" lon="-68.00000"><time>2026-06-15T14:01:50Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>11.10</gpxtpx:depth><gpxtpx:wtemp>11.4</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00500" lon="-68.00000"><time>2026-06-15T14:02:00Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>11.30</gpxtpx:depth><gpxtpx:wtemp>11.4</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00550" lon="-68.00000"><time>2026-06-15T14:02:10Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>10.90</gpxtpx:depth><gpxtpx:wtemp>11.4</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00600" lon="-68.00000"><time>2026-06-15T14:02:20Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>9.80</gpxtpx:depth><gpxtpx:wtemp>11.5</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00650" lon="-68.00000"><time>2026-06-15T14:02:30Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>8.40</gpxtpx:depth><gpxtpx:wtemp>11.6</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00700" lon="-68.00000"><time>2026-06-15T14:02:40Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>6.90</gpxtpx:depth><gpxtpx:wtemp>11.7</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00750" lon="-68.00000"><time>2026-06-15T14:02:50Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>5.20</gpxtpx:depth><gpxtpx:wtemp>11.8</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00775" lon="-68.00000"><time>2026-06-15T14:03:00Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>3.60</gpxtpx:depth><gpxtpx:wtemp>11.9</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+      <trkpt lat="44.00800" lon="-68.00000"><time>2026-06-15T14:03:10Z</time><extensions><gpxtpx:TrackPointExtension><gpxtpx:depth>2.30</gpxtpx:depth><gpxtpx:wtemp>12.0</gpxtpx:wtemp></gpxtpx:TrackPointExtension></extensions></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

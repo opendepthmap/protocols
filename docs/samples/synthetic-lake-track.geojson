@@ -1,0 +1,62 @@
+{
+  "type": "FeatureCollection",
+  "name": "Synthetic Inland Freshwater Lake Fixture (CC0-1.0)",
+  "properties": {
+    "water_body_type": "INLAND_FRESHWATER",
+    "vertical_datum": "LOCAL_LAKE",
+    "salinity_psu": 0.0,
+    "assumed_sound_speed_ms": 1500.0,
+    "disclaimer": "Supplemental bathymetric reference only. Not certified for primary marine navigation; always consult official NOAA/IHO nautical charts."
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.00000, 42.50000] },
+      "properties": { "sounding_id": 1, "raw_depth_m": 1.80, "water_temp_c": 18.0, "salinity_psu": 0.0, "recorded_at_utc": "2026-07-04T15:00:00Z" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.00000, 42.50040] },
+      "properties": { "sounding_id": 2, "raw_depth_m": 4.20, "water_temp_c": 17.8, "salinity_psu": 0.0, "recorded_at_utc": "2026-07-04T15:00:15Z" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.00000, 42.50150] },
+      "properties": { "sounding_id": 3, "raw_depth_m": 9.50, "water_temp_c": 16.5, "salinity_psu": 0.0, "recorded_at_utc": "2026-07-04T15:00:30Z" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.00000, 42.50250] },
+      "properties": { "sounding_id": 4, "raw_depth_m": 14.10, "water_temp_c": 14.0, "salinity_psu": 0.0, "recorded_at_utc": "2026-07-04T15:00:45Z" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.00000, 42.50350] },
+      "properties": { "sounding_id": 5, "raw_depth_m": 14.30, "water_temp_c": 13.8, "salinity_psu": 0.0, "recorded_at_utc": "2026-07-04T15:01:00Z" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.00000, 42.50450] },
+      "properties": { "sounding_id": 6, "raw_depth_m": 8.70, "water_temp_c": 16.2, "salinity_psu": 0.0, "recorded_at_utc": "2026-07-04T15:01:15Z" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.00000, 42.50550] },
+      "properties": { "sounding_id": 7, "raw_depth_m": 3.10, "water_temp_c": 17.9, "salinity_psu": 0.0, "recorded_at_utc": "2026-07-04T15:01:30Z" }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-84.00000, 42.50250, -14.10] },
+      "properties": {
+        "feature_type": "waypoint",
+        "title": "Synthetic Limestone Ledge",
+        "feature_category": "Reef / Ledge",
+        "substrate_type": "Bedrock",
+        "cmecs_substrate_code": "1.1.1",
+        "recorded_depth_m": 14.10,
+        "water_temp_c": 14.0,
+        "recorded_at_utc": "2026-07-04T15:00:45Z"
+      }
+    }
+  ]
+}

@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opendepthmap.org/schemas/geoparquet-sounding-v1.json",
+  "title": "OpenDepthMap GeoParquet 1.1 Sounding Record Schema",
+  "description": "Canonical full-resolution bathymetric sounding record contract stored in GeoParquet 1.1.0 archives (OGC:CRS84 / EPSG:4326). Supplemental bathymetric reference only; not certified for primary marine navigation.",
+  "x-geoparquet": {
+    "version": "1.1.0",
+    "primary_column": "geometry",
+    "public_partition_key": "h3_r5",
+    "columns": {
+      "geometry": {
+        "encoding": "WKB",
+        "geometry_types": ["Point"],
+        "crs": "OGC:CRS84",
+        "edges": "planar",
+        "covering": {
+          "bbox": {
+            "xmin": ["bbox", "xmin"],
+            "ymin": ["bbox", "ymin"],
+            "xmax": ["bbox", "xmax"],
+            "ymax": ["bbox", "ymax"]
+          }
+        }
+      }
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sounding_id",
+    "track_id",
+    "device_id",
+    "geometry",
+    "bbox",
+    "lon",
+    "lat",
+    "h3_index_r8",
+    "h3_index_r9",
+    "is_fuzzed",
+    "raw_depth_m",
+    "draft_offset_m",
+    "vertical_datum",
+    "qartod_qc_flag",
+    "provenance",
+    "recorded_at_utc"
+  ],
+  "properties": {
+    "sounding_id": {
+      "type": "integer",
+      "x-parquet-type": "INT64",
+      "minimum": 1,
+      "description": "Monotonic 64-bit sounding sequence number within a track."
+    },
+    "track_id": {
+      "type": "string",
+      "format": "uuid",
+      "x-parquet-type": "BYTE_ARRAY (UTF8)",
+      "description": "Survey track UUID."
+    },
+    "device_id": {
+      "type": "string",
+      "format": "uuid",
+      "x-parquet-type": "BYTE_ARRAY (UTF8)",
+      "description": "Registered vessel or sensor rig UUID."
+    },
+    "geometry": {
+      "type": "string",
+      "contentEncoding": "base64",
+      "x-parquet-type": "BYTE_ARRAY (WKB Point)",
+      "description": "GeoParquet 1.1 WKB Point geometry in OGC:CRS84 (WGS84 lon, lat)."
+    },
+    "bbox": {
+      "type": "object",
+      "x-parquet-type": "STRUCT<xmin: FLOAT, ymin: FLOAT, xmax: FLOAT, ymax: FLOAT>",
+      "required": ["xmin", "ymin", "xmax", "ymax"],
+      "properties": {
+        "xmin": { "type": "number", "minimum": -180.0, "maximum": 180.0 },
+        "ymin": { "type": "number", "minimum": -90.0, "maximum": 90.0 },
+        "xmax": { "type": "number", "minimum": -180.0, "maximum": 180.0 },
+        "ymax": { "type": "number", "minimum": -90.0, "maximum": 90.0 }
+      },
+      "description": "GeoParquet 1.1 bounding box covering struct for Parquet row-group predicate pushdown."
+    },
+    "lon": {
+      "type": "number",
+      "x-parquet-type": "DOUBLE",
+      "minimum": -180.0,
+      "maximum": 180.0,
+      "description": "WGS84 longitude in decimal degrees (replaced by H3 R8 centroid when is_fuzzed is true)."
+    },
+    "lat": {
+      "type": "number",
+      "x-parquet-type": "DOUBLE",
+      "minimum": -90.0,
+      "maximum": 90.0,
+      "description": "WGS84 latitude in decimal degrees (replaced by H3 R8 centroid when is_fuzzed is true)."
+    },
+    "h3_index_r8": {
+      "type": "string",
+      "x-parquet-type": "BYTE_ARRAY (UTF8)",
+      "pattern": "^[0-9a-f]{15}$",
+      "description": "H3 spatial index at Resolution 8 (~460 m edge length) used for 150 m shoreline fuzzing."
+    },
+    "h3_index_r9": {
+      "type": "string",
+      "x-parquet-type": "BYTE_ARRAY (UTF8)",
+      "pattern": "^[0-9a-f]{15}$",
+      "description": "H3 spatial index at Resolution 9 (~174 m edge length) for spatial filtering and binning."
+    },
+    "is_fuzzed": {
+      "type": "boolean",
+      "x-parquet-type": "BOOLEAN",
+      "description": "True when exact coordinates were replaced by the enclosing H3 Resolution 8 centroid due to 150 m shoreline/endpoint fuzzing."
+    },
+    "raw_depth_m": {
+      "type": "number",
+      "x-parquet-type": "DOUBLE",
+      "minimum": 0.0,
+      "description": "Immutable unreduced transducer depth in meters positive downward."
+    },
+    "draft_offset_m": {
+      "type": "number",
+      "x-parquet-type": "DOUBLE",
+      "default": 0.0,
+      "description": "Static waterline-to-transducer vertical draft offset in meters."
+    },
+    "assumed_sound_speed_ms": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "default": 1500.0,
+      "description": "Assumed acoustic speed of sound configured on the transducer in m/s."
+    },
+    "water_temp_c": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "description": "Measured or track-default water temperature in degrees Celsius."
+    },
+    "salinity_psu": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "minimum": 0.0,
+      "maximum": 45.0,
+      "description": "Measured or track-default water salinity in Practical Salinity Units (0.0 for freshwater)."
+    },
+    "sv_corrected_depth_m": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "description": "UNESCO (Chen & Millero 1977) sound-velocity corrected transducer depth in meters."
+    },
+    "motion_corrected_depth_m": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "description": "Depth below mean instantaneous waterline after draft, lever-arm, pitch/roll slant-range, and heave compensation."
+    },
+    "tide_correction_m": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "description": "Water-level height above chart datum in meters subtracted from motion_corrected_depth_m."
+    },
+    "reduced_depth_m": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "description": "Final datum-reduced depth in meters positive downward (e.g., MLLW)."
+    },
+    "vertical_datum": {
+      "type": "string",
+      "x-parquet-type": "BYTE_ARRAY (UTF8)",
+      "enum": ["UNREDUCED", "MLLW", "IGLD", "LOCAL_LAKE", "MANUAL_DATUM"]
+    },
+    "pitch_deg": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "description": "Vessel IMU pitch in degrees (positive bow-up)."
+    },
+    "roll_deg": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "description": "Vessel IMU roll in degrees (positive starboard-down)."
+    },
+    "heave_m": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "description": "Vessel IMU wave heave in meters (positive upward above mean waterline)."
+    },
+    "tvu_m": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "minimum": 0.0,
+      "description": "Total Vertical Uncertainty at 95% confidence in meters."
+    },
+    "thu_m": {
+      "type": ["number", "null"],
+      "x-parquet-type": "DOUBLE",
+      "minimum": 0.0,
+      "description": "Total Horizontal Uncertainty at 95% confidence in meters."
+    },
+    "iho_s44_order": {
+      "type": "string",
+      "x-parquet-type": "BYTE_ARRAY (UTF8)",
+      "enum": ["SPECIAL_ORDER", "ORDER_1A", "ORDER_1B", "ORDER_2", "UNASSESSED_CSB"],
+      "default": "UNASSESSED_CSB",
+      "description": "Defaults to UNASSESSED_CSB for unverified crowd/recreational uploads; official S-44 orders apply only to verified instrumented surveys."
+    },
+    "calibration_tier": {
+      "type": "string",
+      "x-parquet-type": "BYTE_ARRAY (UTF8)",
+      "enum": ["UNREDUCED", "TIDE_REDUCED", "SV_TIDE_CALIBRATED", "MOTION_COMPENSATED"],
+      "default": "UNREDUCED",
+      "description": "Transparent calibration completeness indicator for recreational and scientific consumers."
+    },
+    "qartod_qc_flag": {
+      "type": "integer",
+      "x-parquet-type": "UINT_8",
+      "enum": [1, 2, 3, 4],
+      "description": "QARTOD quality flag: 1=Good, 2=Not Evaluated, 3=Suspect, 4=Bad."
+    },
+    "provenance": {
+      "type": "string",
+      "x-parquet-type": "BYTE_ARRAY (UTF8)",
+      "enum": ["user-track", "noaa-dcdb", "usgs-3dep", "gebco"]
+    },
+    "recorded_at_utc": {
+      "type": "string",
+      "format": "date-time",
+      "x-parquet-type": "INT64 (TIMESTAMP_MICROS, UTC)",
+      "description": "Precise UTC timestamp of sounding capture."
+    }
+  }
+}

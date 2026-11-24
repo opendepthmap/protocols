@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opendepthmap.org/schemas/iho-b12-csb-v1.json",
+  "title": "OpenDepthMap IHO B-12 Crowd-Sourced Bathymetry (CSB) Export Schema",
+  "description": "IHO B-12 Ed. 3.0.0 aligned GeoJSON export schema for CC0-1.0 public-domain bathymetry contributions.",
+  "type": "object",
+  "required": ["type", "crs", "properties", "features"],
+  "properties": {
+    "type": {
+      "const": "FeatureCollection"
+    },
+    "crs": {
+      "type": "object",
+      "required": ["type", "properties"],
+      "properties": {
+        "type": { "const": "name" },
+        "properties": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "const": "EPSG:4326" }
+          }
+        }
+      }
+    },
+    "properties": {
+      "type": "object",
+      "required": [
+        "trustedNode",
+        "platform",
+        "verticalDatum",
+        "license",
+        "disclaimer"
+      ],
+      "properties": {
+        "trustedNode": {
+          "type": "object",
+          "required": ["providerOrganizationName", "convention", "dataLicense"],
+          "properties": {
+            "providerOrganizationName": { "const": "OpenDepthMap" },
+            "providerEmail": { "type": "string", "format": "email" },
+            "uniqueVesselID": { "type": "string" },
+            "convention": { "const": "CSB 3.0" },
+            "dataLicense": { "const": "CC0-1.0" }
+          }
+        },
+        "platform": {
+          "type": "object",
+          "required": ["type", "name", "sounder"],
+          "properties": {
+            "type": { "type": "string" },
+            "name": { "type": "string" },
+            "draftOffsetMeters": { "type": "number" },
+            "sounder": {
+              "type": "object",
+              "properties": {
+                "frequencyKhz": { "type": ["integer", "null"] },
+                "beamwidthDeg": { "type": ["number", "null"] },
+                "assumedSoundSpeedMs": { "type": "number" }
+              }
+            }
+          }
+        },
+        "verticalDatum": {
+          "type": "string",
+          "enum": ["UNREDUCED", "MLLW", "IGLD", "LOCAL_LAKE", "MANUAL_DATUM"]
+        },
+        "license": {
+          "const": "CC0-1.0"
+        },
+        "disclaimer": {
+          "const": "Supplemental bathymetric reference only. Not certified for primary marine navigation; always consult official NOAA/IHO nautical charts."
+        }
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "geometry", "properties"],
+        "properties": {
+          "type": { "const": "Feature" },
+          "geometry": {
+            "type": "object",
+            "required": ["type", "coordinates"],
+            "properties": {
+              "type": { "const": "Point" },
+              "coordinates": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": { "type": "number" }
+              }
+            }
+          },
+          "properties": {
+            "type": "object",
+            "required": ["depth", "time", "qartod_qc_flag", "is_fuzzed"],
+            "properties": {
+              "depth": {
+                "type": "number",
+                "minimum": 0.0,
+                "description": "Depth positive downward in meters in the header verticalDatum."
+              },
+              "time": {
+                "type": "string",
+                "format": "date-time",
+                "description": "UTC timestamp (RFC 3339)."
+              },
+              "uncertainty": {
+                "type": ["number", "null"],
+                "minimum": 0.0,
+                "description": "Total Vertical Uncertainty (tvu_m) at 95% confidence in meters."
+              },
+              "iho_s44_order": {
+                "type": "string",
+                "enum": ["SPECIAL_ORDER", "ORDER_1A", "ORDER_1B", "ORDER_2", "UNASSESSED_CSB"]
+              },
+              "qartod_qc_flag": {
+                "type": "integer",
+                "enum": [1, 2, 3, 4]
+              },
+              "is_fuzzed": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

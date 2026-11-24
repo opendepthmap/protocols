@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opendepthmap.org/schemas/ogc-features-v1.json",
+  "title": "OpenDepthMap OGC API - Features Item & FeatureCollection Schema",
+  "description": "JSON Schema describing OpenDepthMap OGC API - Features Part 1/2 GeoJSON responses for public-tracks, public-soundings, and public-waypoints collections.",
+  "type": "object",
+  "required": ["type", "features", "links", "timeStamp", "disclaimer"],
+  "properties": {
+    "type": { "const": "FeatureCollection" },
+    "numberMatched": { "type": "integer", "minimum": 0 },
+    "numberReturned": { "type": "integer", "minimum": 0 },
+    "timeStamp": { "type": "string", "format": "date-time" },
+    "disclaimer": {
+      "const": "Supplemental bathymetric reference only. Not certified for primary marine navigation; always consult official NOAA/IHO nautical charts."
+    },
+    "attribution": {
+      "type": "object",
+      "properties": {
+        "bathymetry_license": { "const": "CC0-1.0" },
+        "basemap_attribution": { "type": "string" }
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["href", "rel"],
+        "properties": {
+          "href": { "type": "string", "format": "uri" },
+          "rel": { "type": "string" },
+          "type": { "type": "string" },
+          "title": { "type": "string" }
+        }
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/PublicSoundingFeature" },
+          { "$ref": "#/$defs/PublicTrackFeature" },
+          { "$ref": "#/$defs/PublicWaypointFeature" }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "PublicSoundingFeature": {
+      "type": "object",
+      "required": ["type", "id", "geometry", "properties"],
+      "properties": {
+        "type": { "const": "Feature" },
+        "id": { "type": "string" },
+        "geometry": {
+          "type": "object",
+          "required": ["type", "coordinates"],
+          "properties": {
+            "type": { "const": "Point" },
+            "coordinates": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 3,
+              "items": { "type": "number" }
+            }
+          }
+        },
+        "properties": {
+          "type": "object",
+          "required": [
+            "track_id",
+            "depth_m",
+            "vertical_datum",
+            "qartod_qc_flag",
+            "iho_s44_order",
+            "is_fuzzed",
+            "provenance",
+            "recorded_at_utc"
+          ],
+          "properties": {
+            "track_id": { "type": "string", "format": "uuid" },
+            "depth_m": { "type": "number" },
+            "raw_depth_m": { "type": "number" },
+            "vertical_datum": {
+              "type": "string",
+              "enum": ["UNREDUCED", "MLLW", "IGLD", "LOCAL_LAKE", "MANUAL_DATUM"]
+            },
+            "tvu_m": { "type": ["number", "null"] },
+            "thu_m": { "type": ["number", "null"] },
+            "qartod_qc_flag": { "type": "integer", "enum": [1, 2, 3, 4] },
+            "iho_s44_order": {
+              "type": "string",
+              "enum": ["SPECIAL_ORDER", "ORDER_1A", "ORDER_1B", "ORDER_2", "UNASSESSED_CSB"]
+            },
+            "is_fuzzed": { "type": "boolean" },
+            "h3_index_r8": { "type": "string" },
+            "h3_index_r9": { "type": "string" },
+            "provenance": {
+              "type": "string",
+              "enum": ["user-track", "noaa-dcdb", "usgs-3dep", "gebco"]
+            },
+            "recorded_at_utc": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
+    },
+    "PublicTrackFeature": {
+      "type": "object",
+      "required": ["type", "id", "geometry", "properties"],
+      "properties": {
+        "type": { "const": "Feature" },
+        "id": { "type": "string", "format": "uuid" },
+        "geometry": {
+          "type": "object",
+          "required": ["type", "coordinates"],
+          "properties": {
+            "type": { "const": "MultiLineString" },
+            "coordinates": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "properties": {
+          "type": "object",
+          "required": [
+            "title",
+            "started_at",
+            "ended_at",
+            "sounding_count",
+            "vertical_datum",
+            "calibration_tier",
+            "iho_s44_order",
+            "provenance"
+          ],
+          "properties": {
+            "title": { "type": "string" },
+            "started_at": { "type": "string", "format": "date-time" },
+            "ended_at": { "type": "string", "format": "date-time" },
+            "sounding_count": { "type": "integer" },
+            "min_depth_m": { "type": ["number", "null"] },
+            "max_depth_m": { "type": ["number", "null"] },
+            "vertical_datum": {
+              "type": "string",
+              "enum": ["UNREDUCED", "MLLW", "IGLD", "LOCAL_LAKE", "MANUAL_DATUM"]
+            },
+            "calibration_tier": {
+              "type": "string",
+              "enum": ["UNREDUCED", "TIDE_REDUCED", "SV_TIDE_CALIBRATED", "MOTION_COMPENSATED"]
+            },
+            "tide_station_id": { "type": ["string", "null"] },
+            "iho_s44_order": {
+              "type": "string",
+              "enum": ["SPECIAL_ORDER", "ORDER_1A", "ORDER_1B", "ORDER_2", "UNASSESSED_CSB"]
+            },
+            "provenance": { "type": "string" }
+          }
+        }
+      }
+    },
+    "PublicWaypointFeature": {
+      "type": "object",
+      "required": ["type", "id", "geometry", "properties"],
+      "properties": {
+        "type": { "const": "Feature" },
+        "id": { "type": "string", "format": "uuid" },
+        "geometry": {
+          "type": "object",
+          "required": ["type", "coordinates"],
+          "properties": {
+            "type": { "const": "Point" },
+            "coordinates": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 3,
+              "items": { "type": "number" }
+            }
+          }
+        },
+        "properties": {
+          "type": "object",
+          "required": ["title", "created_at"],
+          "properties": {
+            "title": { "type": "string" },
+            "track_id": { "type": ["string", "null"], "format": "uuid" },
+            "substrate_type": { "type": ["string", "null"] },
+            "feature_category": { "type": ["string", "null"] },
+            "cmecs_substrate_code": { "type": ["string", "null"] },
+            "cmecs_biotic_code": { "type": ["string", "null"] },
+            "darwin_core_taxon": { "type": ["string", "null"] },
+            "recorded_depth_m": { "type": ["number", "null"] },
+            "water_temp_c": { "type": ["number", "null"] },
+            "created_at": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
+    }
+  }
+}
