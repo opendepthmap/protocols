@@ -39,7 +39,10 @@
           "properties": {
             "providerOrganizationName": { "const": "OpenDepthMap" },
             "providerEmail": { "type": "string", "format": "email" },
-            "uniqueVesselID": { "type": "string" },
+            "uniqueVesselID": {
+              "type": "string",
+              "description": "Salted per-track pseudonym UUIDv5 on public exports (never raw device_id) to prevent cross-track vessel fingerprinting."
+            },
             "convention": { "const": "CSB 3.0" },
             "dataLicense": { "const": "CC0-1.0" }
           }
@@ -49,7 +52,10 @@
           "required": ["type", "name", "sounder"],
           "properties": {
             "type": { "type": "string" },
-            "name": { "type": "string" },
+            "name": {
+              "type": "string",
+              "description": "Generic device_category label on public exports (never user-entered boat names or PII)."
+            },
             "draftOffsetMeters": { "type": "number" },
             "sounder": {
               "type": "object",

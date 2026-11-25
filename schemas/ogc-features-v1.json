@@ -148,8 +148,8 @@
           ],
           "properties": {
             "title": { "type": "string" },
-            "started_at": { "type": "string", "format": "date-time", "description": "Quantized to 15-minute UTC buckets in public collections." },
-            "ended_at": { "type": "string", "format": "date-time", "description": "Quantized to 15-minute UTC buckets in public collections." },
+            "started_at": { "type": "string", "format": "date-time", "description": "Quantized to 15-minute UTC buckets in public collections whenever trim_start_m > 0 or trim_end_m > 0." },
+            "ended_at": { "type": "string", "format": "date-time", "description": "Quantized to 15-minute UTC buckets in public collections whenever trim_start_m > 0 or trim_end_m > 0." },
             "sounding_count": { "type": "integer" },
             "min_depth_m": { "type": ["number", "null"] },
             "max_depth_m": { "type": ["number", "null"] },
@@ -198,9 +198,6 @@
             "track_id": { "type": ["string", "null"], "format": "uuid" },
             "substrate_type": { "type": ["string", "null"] },
             "feature_category": { "type": ["string", "null"] },
-            "cmecs_substrate_code": { "type": ["string", "null"] },
-            "cmecs_biotic_code": { "type": ["string", "null"] },
-            "darwin_core_taxon": { "type": ["string", "null"] },
             "recorded_depth_m": { "type": ["number", "null"] },
             "water_temp_c": { "type": ["number", "null"] },
             "created_at": { "type": "string", "format": "date-time" }

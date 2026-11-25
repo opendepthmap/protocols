@@ -17,7 +17,7 @@
 
 | Surface | Canonical Host | Purpose |
 | :--- | :--- | :--- |
-| Portal, REST, OAuth2/OIDC, OGC & Private MVT | `https://opendepthmap.org` | Dark-water web app plus same-origin `/api/v1/*`, `/oauth2/*`, `/.well-known/*`, `/ogc/*`, and `/tiles/private/*` (strictly first-party cookies, zero CORS preflights, single WebAuthn `rpId`) |
+| Portal, REST, OGC & Private MVT | `https://opendepthmap.org` | Dark-water web app plus same-origin `/api/v1/*`, `/ogc/*`, and `/tiles/private/*` (strictly first-party cookies, zero CORS preflights) |
 | Static Public Vector Tiles | `https://tiles.opendepthmap.org` | Cookie-less CDN host for zero-server byte-range `.pmtiles` archives and `/tiles/manifest.json` |
 | Optional Brand Redirects | `https://opendepthmap.com` | Plain 301 redirect to `https://opendepthmap.org` |
 
@@ -28,41 +28,41 @@ All API payloads use UTF-8 JSON (`application/json`, `application/geo+json`, or 
 ## 2. Authentication, Scopes & Rate Limits
 
 ### 2.1 Public Zero-Login Access
-Public map tiles (`.pmtiles`), public OGC API - Features queries, public dataset release metadata, and public contributor profiles require **zero authentication**.
+Public map tiles (`.pmtiles`), public OGC API - Features queries, and public contributor profiles require **zero authentication**.
 
 ### 2.2 Authentication Flows
-1. **Browser & Third-Party OAuth2 / OIDC:**
-   - Standard Authorization Code + PKCE flow via `/.well-known/openid-configuration`, `/oauth2/authorize`, and `/oauth2/token`.
-   - Day-1 contributor sign-in uses **Google** and **GitHub** OAuth2/OIDC plus **WebAuthn / FIDO2 Passkeys** (Email + Password, Apple, and OpenStreetMap linking deferred to Phase 1.5+).
-2. **Headless Field Device Pairing (OAuth2 Device Authorization Grant, RFC 8628):**
-   - `POST /api/v1/auth/device/code` initiates pairing and returns `device_code`, `user_code`, `verification_uri`, `expires_in`, and `interval`.
-   - `POST /api/v1/auth/device/token` polls until the user approves pairing in the web portal and returns a device bearer token and/or provisioned Device API Key.
-3. **Scoped API Keys (`X-API-Key` Header):**
+1. **Browser OAuth2 / OIDC Sign-In (`SessionCookie`):**
+   - Day-1 contributor sign-in uses **Google** and **GitHub** external OAuth2/OIDC logins (`GET /api/v1/auth/external/{provider}/start` and `callback`) establishing a secure `HttpOnly; SameSite=Lax; Secure` session cookie (`__Host-odm-session`) with `X-Requested-With: OpenDepthMap` CSRF protection on state-changing requests.
+2. **Scoped API Keys (`X-API-Key` Header):**
    - **Personal User API Keys** (`odm_usr_` prefix): Created by authenticated users for Python/DuckDB scripts, QGIS plugins, and elevated quotas. Supports expiration, instant revocation, and explicit scopes.
    - **Device / Vessel API Keys** (`odm_dev_` prefix): Bound strictly to a single registered device/vessel (`device_id`). Permanently restricted to `write:tracks` scope only. A Device API Key MUST NEVER be granted `read:private_vault`, `write:waypoints`, or account-management scopes.
 
-### 2.3 OAuth2 & API Key Scopes
+*(See [phase-1.5-roadmap.md](phase-1.5-roadmap.md) and [openapi-v1.5-draft.yaml](../schemas/openapi-v1.5-draft.yaml) for deferred first-party OAuth2/OIDC provider, RFC 8628 headless device pairing, WebAuthn/FIDO2 Passkeys, Email + Password, Apple, and OpenStreetMap linking.)*
+
+### 2.3 Session & API Key Scopes
 
 | Scope | Allowed Credential Types | Capabilities |
 | :--- | :--- | :--- |
-| `read:public` | Public (anonymous), User Token, User API Key | Read public datasets, OGC features, public releases at authenticated quota |
-| `read:prefs` | User Token, User API Key | Read contributor profile, preferences, and registered device metadata |
-| `write:tracks` | User Token, User API Key, Device API Key | Request upload URLs for owned devices, upload raw logs, query own job status |
-| `write:waypoints` | User Token, User API Key | Create, enrich (CMECS/Darwin Core), and update dive waypoints |
-| `read:private_vault` | User Token, User API Key | Read unredacted private tracks, private GeoParquet downloads, and private MVT tiles |
+| `read:public` | Public (anonymous), User Session, User API Key | Read public datasets, OGC features, and public tiles at authenticated quota |
+| `read:prefs` | User Session, User API Key | Read contributor profile, preferences, registered devices, calibrations, and planned routes |
+| `write:tracks` | User Session, User API Key, Device API Key | Register/update devices & calibrations (User Session / User API Key), request upload URLs for owned devices, upload raw logs, query own job status, manage planned routes, and queue offline packs |
+| `write:waypoints` | User Session, User API Key | Create, update, and delete dive and navigation waypoints |
+| `read:private_vault` | User Session, User API Key | Read unredacted private tracks, private GeoParquet downloads, route comparisons, and private MVT tiles |
+
+*(Interactive-only security rule: destructive or credential-critical actions, including account deletion, API key management, device key rotation/deactivation, track hard-deletion, track publish/unpublish/recalibration, and privacy redaction zones, require an active browser `SessionCookie` + CSRF header and are never callable via API keys.)*
 
 ### 2.4 Sliding-Window Rate Limits
 Standard HTTP headers `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `Retry-After` are returned on throttled responses (`HTTP 429 Too Many Requests`):
 - **Anonymous Public IP:** `60 requests / minute` (OGC API and REST metadata; static `.pmtiles` CDN byte-range requests are cached at edge).
 - **Device / Vessel API Key:** `120 requests / minute`.
-- **Personal User API Key / OAuth2 Bearer:** `300 requests / minute`.
+- **Authenticated User Session / Personal User API Key:** `300 requests / minute`.
 
 ---
 
 ## 3. Two-Step Direct Upload Contract & Ingestion Lifecycle
 
 ### 3.1 Mandatory Pre-Upload Device Registration & Effective-Dated Calibrations
-Every track upload MUST reference an active registered `device_id` owned by the authenticated user (created via `POST /api/v1/devices` or OAuth2 Device Flow). Because sensor rigs evolve over time (remounted transducers, changed draft arms, swapped GNSS masts), geometry offsets are stored as **non-overlapping effective-dated calibration revisions** (`POST /api/v1/devices/{deviceId}/calibrations`):
+Every track upload MUST reference an active registered `device_id` owned by the authenticated user (created via `POST /api/v1/devices`). Because sensor rigs evolve over time (remounted transducers, changed draft arms, swapped GNSS masts), geometry offsets are stored as **non-overlapping effective-dated calibration revisions** (`POST /api/v1/devices/{deviceId}/calibrations`):
 - `effective_from`, `effective_to` (RFC 3339 UTC; `effective_to = null` indicates the currently active revision)
 - `depth_reference`: `BELOW_TRANSDUCER` (default; applies `draft_offset_m`) or `BELOW_WATERLINE` (prevents double-counting when chartplotters already bake draft into exported depth)
 - `device_category`: `SURFACE_BUOY`, `RECREATIONAL_VESSEL`, `DIVER_COMPUTER`, `USV_AUTONOMOUS`, `THIRD_PARTY_PLOTTER`
@@ -86,21 +86,15 @@ At ingestion time, the server resolves the calibration revision active at the tr
    `PENDING_UPLOAD` -> `QUEUED` -> `PARSING` -> `QC_RUNNING` -> `TIDE_REDUCING` -> `COMPLETED` (or `FAILED`; abandoned uploads past expiration transition to `EXPIRED`).
 5. Client polls `GET /api/v1/jobs/{jobId}` for `status`, `progress_pct` (`0` to `100`), `track_id` (once created), and structured `error_code` / `error_detail` on failure.
 
-### 3.3 Supported Input Formats (Day-1 GA vs. Phase 1.5 Proprietary Pack)
+### 3.3 Supported Input Formats (Day-1 GA)
+*(See [phase-1.5-roadmap.md](phase-1.5-roadmap.md) for deferred `NMEA_2000`, `SUBSURFACE_SSRF`, `SIGNALK_DELTA`, and proprietary binary formats.)*
 
-| Format Code | File Extensions | Availability | Category & Hardening Limits |
-| :--- | :--- | :--- | :--- |
-| `GPX` | `.gpx` | **Day-1 GA** | Open XML (Garmin/depth extensions); DTD disabled, max 500 MiB expanded |
-| `GEOJSON` | `.geojson`, `.json` | **Day-1 GA** | Open JSON (RFC 7946 `FeatureCollection`, `LineString`, or `Point`; `feature_type=waypoint` extracted) |
-| `CSV` | `.csv` | **Day-1 GA** | Open tabular requiring `lon`, `lat`, `recorded_at_utc`, and exactly one depth column (`depth_m`, `depth_ft`, `depth_fathoms`, or `depth`); unit-header mismatch rejected (`UNIT_HEADER_MISMATCH`) |
-| `NMEA_0183` | `.nmea`, `.txt`, `.log` | **Day-1 GA** | Text marine stream; strict checksum validation (`GGA`, `RMC`, `DBT`, `DPT`, `MTW`); `$SDDPT` takes precedence over `$SDDBT` |
-| `NMEA_2000` | `.n2k`, `.can`, `.log` | Phase 1.5 | CANboat/Actisense CSV PGN logs and SocketCAN `candump` logs carrying PGNs `128267` (Water Depth), `129025` (Position Rapid), `129029` (GNSS Position Data), and `130310` (Environmental Parameters) |
-| `SUBSURFACE_SSRF` | `.ssrf`, `.xml` | Phase 1.5 | Open dive log XML (`track_modality=DIVE_PROFILE`, excluded from seafloor bathymetry); DTD disabled, max 500 MiB expanded |
-| `SIGNALK_DELTA` | `.json`, `.ndjson` | Phase 1.5 | Batched Signal K delta JSON/NDJSON log files uploaded via `/api/v1/tracks/upload-url` |
-| `LOWRANCE_SL2` | `.sl2` | Phase 1.5 | Proprietary binary sonar; magic-byte verified |
-| `LOWRANCE_SL3` | `.sl3` | Phase 1.5 | Proprietary binary sonar; magic-byte verified |
-| `HUMMINBIRD_ZIP` | `.zip` (`.dat` + `.son`) | Phase 1.5 | Proprietary sonar bundle pairing `.dat` UTC header and `.son` frames; max 500 MiB expanded |
-| `GARMIN_RSD` | `.rsd` | Phase 1.5 (Beta) | Proprietary binary sonar; magic-byte verified |
+| Format Code | File Extensions | Hardening & Validation Rules |
+| :--- | :--- | :--- |
+| `GPX` | `.gpx` | Open XML (Garmin/depth extensions); DTD disabled, max 500 MiB expanded |
+| `GEOJSON` | `.geojson`, `.json` | Open JSON (RFC 7946 `FeatureCollection`, `LineString`, or `Point`; `feature_type=waypoint` extracted) |
+| `CSV` | `.csv` | Open tabular requiring `lon`, `lat`, `recorded_at_utc`, and exactly one depth column (`depth_m`, `depth_ft`, `depth_fathoms`, or `depth`), plus optional IMU columns (`pitch_deg`, `roll_deg`, `heave_m`); unit-header mismatch rejected (`UNIT_HEADER_MISMATCH`) |
+| `NMEA_0183` | `.nmea`, `.txt`, `.log` | Text marine stream; strict checksum validation (`GGA`, `RMC`, `DBT`, `DPT`, `MTW`); `$SDDPT` takes precedence over `$SDDBT` |
 
 ---
 
@@ -110,25 +104,23 @@ Full request/response payloads, status codes, and RFC 9457 error objects are spe
 
 | Group | Endpoint | Auth / Scope | Purpose |
 | :--- | :--- | :--- | :--- |
-| Auth (Session) | `POST /api/v1/auth/logout`, `GET/PATCH /api/v1/auth/me`, `POST /api/v1/auth/accept-terms`, `DELETE /api/v1/auth/account` | `SessionCookie` | Interactive session, profile updates, Contributor Terms, and account hard-deletion |
-| Auth (Passkeys/OAuth) | `GET /api/v1/auth/passkeys`, `PATCH/DELETE /api/v1/auth/passkeys/{id}`, `POST /api/v1/auth/passkeys/register\|login/options\|verify`, `GET /api/v1/auth/external/{provider}/start\|callback`, `DELETE /api/v1/auth/external/{provider}` | Public / `SessionCookie` | FIDO2 Passkey management (including Admin step-up), Google/GitHub login/linking (rejects removing last auth method with `409`) |
-| Auth (Device) | `POST /api/v1/auth/device/code`, `POST /api/v1/auth/device/token`, `GET/POST /api/v1/auth/device/verify` | Public / `SessionCookie` | RFC 8628 headless device pairing initiation, polling, pending-code lookup, and user approval |
+| Auth (Session) | `POST /api/v1/auth/logout`, `GET/PATCH /api/v1/auth/me`, `POST /api/v1/auth/accept-terms`, `DELETE /api/v1/auth/account`, `GET /api/v1/auth/external/{provider}/start\|callback`, `DELETE /api/v1/auth/external/{provider}` | Public / `SessionCookie` (`GET /auth/me` also accepts User Key `read:prefs`) | Google/GitHub login & linking, profile updates, Contributor Terms, and account hard-deletion |
 | User Keys | `GET/POST /api/v1/api-keys`, `DELETE /api/v1/api-keys/{id}` | `SessionCookie` | Manage Personal User API Keys (`odm_usr_`) |
-| Devices | `GET/POST /api/v1/devices`, `PATCH/DELETE /api/v1/devices/{id}`, `POST /api/v1/devices/{id}/rotate-key` | Session / Bearer / User Key | Register vessels/sensors, update device name/category, rotate or soft-deactivate Device API Keys (`odm_dev_`) |
-| Calibrations | `GET/POST /api/v1/devices/{id}/calibrations`, `PATCH /api/v1/devices/{id}/calibrations/{revisionId}` | Session / Bearer / User Key | Manage non-overlapping effective-dated sensor rig geometry revisions |
+| Devices | `GET/POST /api/v1/devices`, `PATCH /api/v1/devices/{id}`; `DELETE /api/v1/devices/{id}`, `POST /api/v1/devices/{id}/rotate-key` | Session / User Key (`read:prefs`, `write:tracks`); delete & rotate `SessionCookie` only | Register vessels/sensors, update device name/category, rotate or soft-deactivate write-only Device API Keys (`odm_dev_`) |
+| Calibrations | `GET/POST /api/v1/devices/{id}/calibrations`, `PATCH /api/v1/devices/{id}/calibrations/{revisionId}` | Session / User Key (`read:prefs`, `write:tracks`) | Manage non-overlapping effective-dated sensor rig geometry revisions |
 | Ingestion | `POST /api/v1/tracks/upload-url` | `write:tracks` (Device Key bound to own `device_id`) | Request 15-minute single-use signed direct upload URL |
 | Jobs | `GET /api/v1/jobs`, `GET /api/v1/jobs/{jobId}` | Owner (Device Key restricted to own `INGESTION` jobs) | List and inspect ingestion, recalibration, publish, export, or offline pack jobs |
-| Tracks | `GET /api/v1/tracks` (`q`, `device_id`, `modality`, `is_public`, `from`/`to`, `bbox`, `sort`), `GET/PATCH/DELETE /api/v1/tracks/{id}`, `GET /api/v1/tracks/{id}/privacy-settings`, `GET /api/v1/tracks/{id}/profile`, `GET /api/v1/tracks/{id}/nearby-tide-stations` | Owner (`read:private_vault`) or Public (redacted/trimmed only) | Search, filter, inspect, edit, or hard-delete tracks; read saved privacy trims, depth profiles, and nearby NOAA stations |
-| Tracks | `POST /api/v1/tracks/{id}/recalibrate`, `POST /api/v1/tracks/{id}/publish`, `POST /api/v1/tracks/{id}/unpublish` | Owner Session / Bearer | Re-run calibration over immutable raw soundings, trim/redact and publish publicly, or pull a published track back to private |
+| Tracks | `GET /api/v1/tracks` (`q`, `device_id`, `modality`, `is_public`, `from`/`to`, `bbox`, `sort`), `GET/PATCH /api/v1/tracks/{id}`, `GET /api/v1/tracks/{id}/privacy-settings`, `GET /api/v1/tracks/{id}/profile`, `GET /api/v1/tracks/{id}/nearby-tide-stations` | Owner (`read:private_vault` / `write:tracks`) or Public (redacted/trimmed only) | Search, filter, inspect, or edit tracks; read saved privacy trims, depth profiles, and nearby NOAA stations |
+| Tracks (Vault Actions) | `DELETE /api/v1/tracks/{id}`, `POST /api/v1/tracks/{id}/recalibrate`, `POST /api/v1/tracks/{id}/publish`, `POST /api/v1/tracks/{id}/unpublish` | `SessionCookie` only | Hard-delete tracks, re-run calibration over immutable raw soundings, trim/redact and publish publicly, or pull a published track back to private |
 | Search & Marine Stations | `GET /api/v1/search`, `GET /api/v1/tides/stations` | Public | Unified map search (published sites/tracks, tide stations, cached OSM places) and cached NOAA CO-OPS tide & NDBC buoy stations |
-| Privacy | `GET/POST /api/v1/privacy/redaction-zones`, `PATCH/DELETE /api/v1/privacy/redaction-zones/{id}`, `GET/POST /api/v1/privacy/takedowns`, `GET /api/v1/privacy/deletion-receipts/{id}` | Owner / `SiteSteward` | Personal spatial exclusion polygons, cultural takedowns, and deletion receipts |
-| Waypoints | `GET/POST /api/v1/waypoints`, `PATCH/DELETE /api/v1/waypoints/{id}`, `POST /api/v1/waypoints/{id}/media/upload-url`, `GET /api/v1/waypoints/{id}/media/{mediaId}` | Public (if `is_public`) or Owner (`write:waypoints`) | Manage waypoints (CMECS/Darwin Core) and EXIF-stripped photo uploads (`<= 15 MiB`, served via auth-checked endpoint) |
-| Routes | `GET/POST /api/v1/routes`, `PATCH/DELETE /api/v1/routes/{id}`, `GET /api/v1/routes/{id}/compare/{trackId}` | Owner Session / Bearer | Planned water routes & survey transects (dive, kayak, boat, survey), leg magnetic bearings, and planned-vs-actual drift comparison |
-| Offline Packs | `POST /api/v1/packs/offline` | Session / Bearer / User Key | Queue regional `.pmtiles` offline chart pack build (`<= 10,000 km^2`) |
-| Exports | `POST /api/v1/exports`, `GET /api/v1/exports/{jobId}`, `GET /api/v1/releases` | Public / Scoped Key (`CF_NETCDF`/`COG` in Phase 1.5 require auth) | GeoParquet 1.1 & IHO B-12 CSB exports (Day 1), gridded CF-NetCDF/COG (Phase 1.5), anonymous public export polling, and DOI dataset releases |
+| Privacy | `GET/POST /api/v1/privacy/redaction-zones`, `PATCH/DELETE /api/v1/privacy/redaction-zones/{id}` | `SessionCookie` only | Personal spatial exclusion polygons |
+| Waypoints | `GET/POST /api/v1/waypoints`, `PATCH/DELETE /api/v1/waypoints/{id}` | Public (if `is_public`) or Session / User Key (`write:waypoints`) | Manage waypoints (`title`, `notes`, `feature_category`, `substrate_type`, `recorded_depth_m`) |
+| Routes & Offline Packs | `GET/POST /api/v1/routes`, `PATCH/DELETE /api/v1/routes/{id}`, `GET /api/v1/routes/{id}/compare/{trackId}`, `POST /api/v1/packs/offline` | Session / User Key (`read:prefs`, `read:private_vault`, `write:tracks`) | Planned water routes & survey transects (dive, kayak, boat, survey), leg compass bearings, drift comparison, and regional `.pmtiles` offline chart packs (`<= 10,000 km^2`) |
+| Exports | `POST /api/v1/exports`, `GET /api/v1/exports/{jobId}` | Public (bbox `<= 10,000 km^2`, `<= 1` active job/IP) / Session / User Key | GeoParquet 1.1 & IHO B-12 CSB exports + anonymous public export polling |
 | Contributors | `GET /api/v1/contributors/{displayName}` | Public | View public contributor profile and published traces |
-| Tiles | `GET https://tiles.opendepthmap.org/tiles/manifest.json`, `GET /tiles/private/{z}/{x}/{y}.mvt` | Public (manifest) / `read:private_vault` (MVT) | Regional `.pmtiles` shard manifest and dynamic private MVT vector tiles |
-| System & Stats | `GET /api/v1/stats/public`, `GET /api/v1/system/status`, `GET /health/live`, `GET /health/ready` | Public | Live coverage counters, active public feature/maintenance flags, and liveness/readiness probes |
+| Tiles & System | `GET https://tiles.opendepthmap.org/tiles/manifest.json`, `GET /tiles/private/{z}/{x}/{y}.mvt`, `GET /api/v1/stats/public`, `GET /api/v1/system/status`, `GET /health/live`, `GET /health/ready` | Public / `read:private_vault` (MVT) | Regional `.pmtiles` shard manifest, dynamic private MVT tiles, live stats, status flags, and health probes |
+
+*(Deferred endpoints for Passkeys, RFC 8628 Device Flow, Steward Takedowns, Deletion Receipts, Waypoint Media, and DOI Releases are documented in [phase-1.5-roadmap.md](phase-1.5-roadmap.md) and [openapi-v1.5-draft.yaml](../schemas/openapi-v1.5-draft.yaml).)*
 
 ---
 
@@ -139,9 +131,9 @@ OpenDepthMap implements **OGC API - Features Part 1 (Core)** and **Part 2 (Coord
 - `GET /ogc`: Landing page with links (`self`, `service-desc`, `conformance`, `data`) and mandatory non-navigational notice.
 - `GET /ogc/conformance`: Conformance classes (`core`, `oas30`, `geojson`, `crs`).
 - `GET /ogc/collections`: Lists available public collections:
-  - `public-tracks`: Published, post-redaction, post-fuzz-trimmed bathymetric track summaries (`MultiLineStringZ`, split across redacted polygon gaps; never raw tracks or mid-water `DIVE_PROFILE` logs).
-  - `public-soundings`: Published, privacy-redacted bathymetric soundings (`Point`, with `is_fuzzed`, `vertical_datum`, `calibration_tier`, `qartod_qc_flag`, `tvu_m`, `thu_m`, `iho_s44_order`, `provenance`).
-  - `public-waypoints`: Published subsea ecological and structural waypoints (`PointZ`, CMECS/Darwin Core fields).
+  - `public-tracks`: Published, post-redaction, post-trim bathymetric track summaries (`MultiLineStringZ`, split across redacted polygon gaps; never raw tracks or mid-water `DIVE_PROFILE` logs).
+  - `public-soundings`: Published, privacy-redacted bathymetric soundings (`Point`, with `is_fuzzed` [always `false` on Day 1; schema-reserved], `vertical_datum`, `calibration_tier`, `qartod_qc_flag`, `tvu_m`, `thu_m`, `iho_s44_order`, `provenance`).
+  - `public-waypoints`: Published subsea and navigation waypoints (`PointZ`, `title`, `feature_category`, `substrate_type`, `recorded_depth_m`, `water_temp_c`).
 - `GET /ogc/collections/{collectionId}/items`: Supports `bbox` (`minLon,minLat,maxLon,maxLat`), `bbox-crs`, `crs`, `datetime` (RFC 3339 instant or `start/end` interval), `limit` (`1` to `1000`, default `100`), cursor pagination (`next` link), and domain filters (`vertical_datum`, `calibration_tier`, `qartod_qc_flag`, `iho_s44_order`, `provenance`).
 
 Every OGC FeatureCollection response includes a top-level `attribution` and `disclaimer` metadata object carrying OpenStreetMap attribution (when applicable) and the mandatory non-navigational warning.
@@ -169,32 +161,25 @@ Full-resolution bathymetric archives conform to **GeoParquet 1.1.0** (`[geoparqu
 
 ### 6.1 Public Privacy Redaction Guarantees
 Before any sounding enters public GeoParquet archives, OGC collections, or public `.pmtiles`:
-1. Any sounding inside an owner's `redaction_zones` polygon or an active `protected_site_takedowns` polygon is excluded from public output.
-2. Any sounding within the contributor's chosen `trim_start_m` cumulative distance from track start or `trim_end_m` cumulative distance from track end (default `0 m`, user-adjustable via slide bars up to `5,000 m`) is completely erased from public output, preserving short shore dives when set to `0` while making beach-entry trimming effortless.
-3. If the contributor optionally opts into `fuzz_endpoints = true` (default `false`), soundings within their configured `fuzz_radius_m` (default `150.0 m`, configurable `25.0 m` to `500.0 m` plus optional per-track jitter) of track start, track end, or registered shoreline launch ramps have their `lon`, `lat`, and `geometry` replaced by the centroid of their enclosing **H3 Resolution 8** cell (`~460 m` edge length) with `is_fuzzed = true`. Whenever trimming or endpoint fuzzing is active, public timestamps are quantized to 15-minute buckets to prevent launch reconstruction, and public track geometries (`MultiLineStringZ`) are trimmed of hidden endpoints and split across redacted gaps.
-4. If the contributor enables optional regional grid binning (`H3 Resolution 9` or `H3 Resolution 10`), soundings are aggregated into H3 cell summaries (`min_depth_m`, `mean_depth_m`, `median_depth_m`, `max_depth_m`, `sounding_count`, `vertical_datum`).
+1. Any sounding inside an owner's `redaction_zones` polygon is excluded from public output.
+2. Any sounding within the contributor's chosen `trim_start_m` cumulative distance from track start or `trim_end_m` cumulative distance from track end (default `0 m`, user-adjustable via slide bars up to `5,000 m`) is completely erased from public output, preserving short shore dives when set to `0` while making beach-entry trimming effortless. Whenever trimming is active, public timestamps are quantized to 15-minute buckets and `public_geom` (`MultiLineStringZ`) is trimmed of hidden endpoints and split across redacted gaps.
 
 ---
 
 ## 7. Open Export Formats & Vector Tile Schema
 
-### 7.1 IHO B-12 Crowd-Sourced Bathymetry (CSB)
-Defined in [iho-b12-csb-v1.json](../schemas/iho-b12-csb-v1.json). Exports both **IHO B-12 GeoJSON** (metadata header with `platform`, `trustedNode`, `crs`, `verticalDatum`, `license: "CC0-1.0"`, and `features` array with `depth`, `time`, `uncertainty`; single-track `scope=TRACK` outputs one GeoJSON file, while multi-track `scope=BBOX|RELEASE` outputs a `.zip` bundle containing one valid B-12 GeoJSON per `(track_id, verticalDatum)`) and flat **IHO B-12 CSV** (`LON,LAT,DEPTH,TIME,PLATFORM_NAME,UNCERTAINTY,VERTICAL_DATUM,QARTOD_FLAG`, with CSV formula-injection escaping on string columns). Mid-water `DIVE_PROFILE` tracks are excluded from IHO B-12 CSB exports.
+### 7.1 IHO B-12 Crowd-Sourced Bathymetry (CSB) & GeoParquet 1.1
+Defined in [iho-b12-csb-v1.json](../schemas/iho-b12-csb-v1.json) and [geoparquet-sounding-v1.json](../schemas/geoparquet-sounding-v1.json). Exports **GeoParquet 1.1**, **IHO B-12 GeoJSON** (metadata header with `platform`, `trustedNode`, `crs`, `verticalDatum`, `license: "CC0-1.0"`, and `features` array; single-track `scope=TRACK` outputs one GeoJSON file, while multi-track `scope=BBOX` outputs a `.zip` bundle containing one valid B-12 GeoJSON per `(track_id, verticalDatum)`), and flat **IHO B-12 CSV** (`LON,LAT,DEPTH,TIME,PLATFORM_NAME,UNCERTAINTY,VERTICAL_DATUM,QARTOD_FLAG`, with CSV formula-injection escaping strictly on string columns). On all public IHO B-12 exports, `trustedNode.uniqueVesselID` MUST be populated with the salted per-track pseudonym (never raw `device_id`), and `platform.name` / `PLATFORM_NAME` MUST use the generic `device_category` label (never user-entered boat names or PII) so vessels cannot be fingerprinted across tracks. *(Gridded CF-1.10 NetCDF and Cloud-Optimized GeoTIFF exports are documented in [phase-1.5-roadmap.md](phase-1.5-roadmap.md).)*
 
-### 7.2 CF-1.10 NetCDF & Cloud-Optimized GeoTIFF (COG) (Phase 1.5 Gridded Exports)
-Reserved for Phase 1.5 once dense community coverage warrants gridded bathymetric rasters (requests on Day 1 return `501 Not Implemented` / `FORMAT_NOT_ENABLED`). Gridded bathymetry exports leave unmapped cells beyond `max_search_radius_m` strictly as `NODATA` (`NaN`) rather than interpolating across sparse gaps, enforce a maximum export size of `25,000,000` grid pixels (and `10,000 km^2` for offline packs), and include standardized metadata:
-- **CF-1.10 NetCDF:** `Conventions = "CF-1.10"`, coordinate variables `lon` (`degrees_east`), `lat` (`degrees_north`), data variables `depth` (`standard_name = "sea_floor_depth_below_sea_surface"` or datum-specific `long_name`, `units = "m"`, `positive = "down"`), `depth_uncertainty` (`tvu_m`), `sounding_count`, plus global provenance attributes (`vertical_datum`, `gridding_method`, `grid_resolution_m`, `algorithm_version`, `doi`, `license`, `disclaimer`).
-- **COG:** Single-band or multi-band float32 GeoTIFF (`Band 1: depth_m`, `Band 2: tvu_m`, `Band 3: sounding_count`), `EPSG:4326` or `EPSG:3857`, internal tiling `512x512`, `DEFLATE` compression, internal overviews, and GDAL metadata tags matching CF-NetCDF provenance.
-
-### 7.3 Public & Offline `.pmtiles` Vector Tile Schema
+### 7.2 Public & Offline `.pmtiles` Vector Tile Schema
 Single-file `.pmtiles` archives served over HTTP byte-range requests contain up to four bathymetric layers (kept separate from self-hosted OSM land/shoreline `.pmtiles` to honor ODbL 1.0 boundaries):
 
 | Layer Name | Geometry | Zoom Range | Standardized Feature Attributes |
 | :--- | :--- | :--- | :--- |
-| `depth_soundings` | `Point` | `z10` to `z16` | `track_id`, `depth_m`, `raw_depth_m`, `vertical_datum`, `calibration_tier`, `iho_s44_order`, `qartod_qc_flag`, `tvu_m`, `thu_m`, `is_fuzzed`, `provenance` |
+| `depth_soundings` | `Point` | `z10` to `z16` | `track_id`, `depth_m`, `raw_depth_m`, `vertical_datum`, `calibration_tier`, `iho_s44_order`, `qartod_qc_flag`, `tvu_m`, `thu_m`, `is_fuzzed` (`false` on Day 1), `provenance` |
 | `depth_contours` | `LineString` | `z6` to `z16` | `depth_m`, `vertical_datum`, `contour_interval_m`, `provenance` |
 | `depth_h3_bins` | `Polygon` | `z4` to `z12` | `h3_index`, `h3_res`, `mean_depth_m`, `min_depth_m`, `max_depth_m`, `sounding_count`, `vertical_datum`, `provenance` |
-| `waypoints` | `Point` | `z8` to `z16` | `waypoint_id`, `title`, `feature_category`, `substrate_type`, `cmecs_substrate_code`, `cmecs_biotic_code`, `darwin_core_taxon`, `recorded_depth_m` |
+| `waypoints` | `Point` | `z8` to `z16` | `waypoint_id`, `title`, `feature_category`, `substrate_type`, `recorded_depth_m` |
 
 Offline pack manifests (`manifest.json` bundled alongside `.pmtiles` metadata) include `pack_id`, `bbox`, `generated_at_utc`, `included_layers`, `include_noaa_baseline`, `osm_attribution`, and the mandatory non-navigational disclaimer.
 
@@ -207,4 +192,5 @@ Public synthetic fixtures (zero real user coordinates or private launch location
 - [synthetic-lake-track.geojson](samples/synthetic-lake-track.geojson): Synthetic inland freshwater lake track (`LOCAL_LAKE`, `0.0 PSU` salinity) with dive waypoint metadata.
 - [synthetic-nmea-0183.nmea](samples/synthetic-nmea-0183.nmea): Valid checksummed NMEA 0183 stream (`$GPGGA`, `$GPRMC`, `$SDDBT`, `$SDDPT`, `$YXMTW`) for parser interoperability testing.
 - [synthetic-anglers-feet.csv](samples/synthetic-anglers-feet.csv): Synthetic freshwater CSV track in feet (`depth_unit=FEET`) verifying unit conversion to positive-downward meters.
-- [synthetic-dive-profile.ssrf](samples/synthetic-dive-profile.ssrf): Synthetic Subsurface scuba dive log verifying `track_modality=DIVE_PROFILE` classification and exclusion from seafloor bathymetry.
+
+*(Deferred Phase 1.5 sample fixtures in `docs/samples/`: [synthetic-dive-profile.ssrf](samples/synthetic-dive-profile.ssrf) and [synthetic-nmea-2000.n2k](samples/synthetic-nmea-2000.n2k).)*

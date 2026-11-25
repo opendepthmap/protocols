@@ -1,81 +1,87 @@
+---
 openapi: 3.1.0
 info:
   title: OpenDepthMap External API
   version: 1.0.0
-  summary: Vendor-neutral bathymetric ingestion, privacy vault, OGC API - Features, and open export API.
-  description: >
-    Public Phase 1 REST and OGC API - Features contract for OpenDepthMap (opendepthmap.org).
-    Supplemental bathymetric reference only. Not certified for primary marine navigation;
-    always consult official NOAA/IHO nautical charts.
+  summary: Vendor-neutral bathymetric ingestion, privacy vault, OGC API - Features,
+    and open export API.
+  description: Canonical Phase 1 (Day-1 GA) public REST and OGC API - Features contract
+    for https://opendepthmap.org. Supplemental bathymetric reference only; not certified
+    for primary marine navigation. See docs/phase-1.5-roadmap.md and schemas/openapi-v1.5-draft.yaml
+    for deferred Phase 1.5 extensions.
   license:
     name: CC0-1.0
     identifier: CC0-1.0
 servers:
-  - url: https://opendepthmap.org
-    description: Production API (same-origin with web portal)
-  - url: http://localhost:5080
-    description: Local developer sandbox
+- url: https://opendepthmap.org
+  description: Production API (same-origin with web portal)
+- url: http://localhost:5080
+  description: Local developer sandbox
 security: []
 tags:
-  - name: Auth
-    description: OAuth2 Device Authorization Flow and Personal User API Key management.
-  - name: Devices
-    description: Mandatory pre-upload vessel and sensor rig registration.
-  - name: Ingestion
-    description: Two-step direct-to-storage upload contract and async job status.
-  - name: Tracks
-    description: Survey track inspection, publishing, and atomic hard-deletion cascades.
-  - name: Privacy
-    description: Spatial redaction zones, site steward takedowns, and deletion audit receipts.
-  - name: Waypoints
-    description: Subsea waypoints with CMECS and Darwin Core ecological enrichment.
-  - name: Routing
-    description: Planned water routes, survey transects, and offline PMTiles chart packs.
-  - name: Exports
-    description: GeoParquet 1.1 and IHO B-12 CSB exports (Day-1 GA), gridded CF-NetCDF/COG (Phase 1.5), and DOI dataset releases.
-  - name: OGC
-    description: OGC API - Features Part 1 and Part 2 endpoints.
-  - name: Tiles
-    description: Authenticated private dynamic MVT vector tiles.
-  - name: Catalog
-    description: Unified map search and cached public marine observation stations.
-  - name: System
-    description: Public coverage counters, system feature flags, and liveness/readiness probes.
+- name: Auth
+  description: Google/GitHub browser sessions and Personal User API Key management.
+- name: Devices
+  description: Mandatory pre-upload vessel and sensor rig registration.
+- name: Ingestion
+  description: Two-step direct-to-storage upload contract and async job status.
+- name: Tracks
+  description: Survey track inspection, publishing, and atomic hard-deletion cascades.
+- name: Privacy
+  description: Personal spatial redaction zones.
+- name: Waypoints
+  description: Subsea and coastal waypoints.
+- name: Routing
+  description: Planned water routes, survey transects, and offline PMTiles chart packs.
+- name: Exports
+  description: GeoParquet 1.1 and IHO B-12 CSB open exports.
+- name: OGC
+  description: OGC API - Features Part 1 and Part 2 endpoints.
+- name: Tiles
+  description: Authenticated private dynamic MVT vector tiles.
+- name: Catalog
+  description: Unified map search and cached public marine observation stations.
+- name: System
+  description: Public coverage counters, system feature flags, and liveness/readiness
+    probes.
 paths:
-  /api/v1/auth/logout:
+  "/api/v1/auth/logout":
     post:
-      tags: [Auth]
+      tags:
+      - Auth
       summary: Terminate the active browser session
       operationId: logoutAccount
       security:
-        - SessionCookie: []
+      - SessionCookie: []
       responses:
-        "204":
+        '204':
           description: Session terminated.
-  /api/v1/auth/me:
+  "/api/v1/auth/me":
     get:
-      tags: [Auth]
-      summary: Get current authenticated user profile, roles, and Contributor Terms status
+      tags:
+      - Auth
+      summary: Get current authenticated user profile, roles, and Contributor Terms
+        status
       operationId: getCurrentUser
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:prefs"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       responses:
-        "200":
+        '200':
           description: Current authenticated user context.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthenticatedUser"
-        "401":
-          $ref: "#/components/responses/ProblemDetails"
+                "$ref": "#/components/schemas/AuthenticatedUser"
+        '401':
+          "$ref": "#/components/responses/ProblemDetails"
     patch:
-      tags: [Auth]
+      tags:
+      - Auth
       summary: Update contributor display_name or bio
       operationId: updateCurrentUser
       security:
-        - SessionCookie: []
+      - SessionCookie: []
       requestBody:
         required: true
         content:
@@ -88,1201 +94,997 @@ paths:
                   minLength: 3
                   maxLength: 80
                 bio:
-                  type: [string, "null"]
+                  type:
+                  - string
+                  - 'null'
                   maxLength: 1000
       responses:
-        "200":
+        '200':
           description: Updated user profile.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthenticatedUser"
-  /api/v1/auth/accept-terms:
+                "$ref": "#/components/schemas/AuthenticatedUser"
+  "/api/v1/auth/accept-terms":
     post:
-      tags: [Auth]
-      summary: Record explicit acceptance of CC0-1.0 Contributor Terms prior to public publishing
+      tags:
+      - Auth
+      summary: Record explicit acceptance of CC0-1.0 Contributor Terms prior to public
+        publishing
       operationId: acceptContributorTerms
       security:
-        - SessionCookie: []
+      - SessionCookie: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [terms_version, accepted]
+              required:
+              - terms_version
+              - accepted
               properties:
                 terms_version:
                   type: string
-                  example: "1.0.0"
+                  example: 1.0.0
                 accepted:
                   type: boolean
                   const: true
       responses:
-        "200":
+        '200':
           description: Contributor Terms acceptance timestamp recorded.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthenticatedUser"
-  /api/v1/auth/passkeys:
+                "$ref": "#/components/schemas/AuthenticatedUser"
+  "/api/v1/auth/external/{provider}/start":
     get:
-      tags: [Auth]
-      summary: List enrolled FIDO2 Passkeys for the authenticated user
-      operationId: listPasskeys
-      security:
-        - SessionCookie: []
-      responses:
-        "200":
-          description: Enrolled passkey metadata.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [items]
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/PasskeySummary"
-  /api/v1/auth/passkeys/{passkeyId}:
-    patch:
-      tags: [Auth]
-      summary: Rename an enrolled FIDO2 Passkey
-      operationId: renamePasskey
-      security:
-        - SessionCookie: []
-      parameters:
-        - name: passkeyId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [friendly_name]
-              properties:
-                friendly_name:
-                  type: string
-                  minLength: 1
-                  maxLength: 100
-      responses:
-        "200":
-          description: Passkey renamed.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PasskeySummary"
-    delete:
-      tags: [Auth]
-      summary: Remove an enrolled FIDO2 Passkey
-      operationId: deletePasskey
-      security:
-        - SessionCookie: []
-      parameters:
-        - name: passkeyId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "204":
-          description: Passkey removed.
-        "409":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/auth/passkeys/register/options:
-    post:
-      tags: [Auth]
-      summary: Generate WebAuthn FIDO2 Passkey registration challenge options
-      operationId: beginPasskeyRegistration
-      security:
-        - SessionCookie: []
-      responses:
-        "200":
-          description: PublicKeyCredentialCreationOptions payload.
-          content:
-            application/json:
-              schema:
-                type: object
-  /api/v1/auth/passkeys/register/verify:
-    post:
-      tags: [Auth]
-      summary: Verify WebAuthn attestation and persist a new FIDO2 Passkey
-      operationId: completePasskeyRegistration
-      security:
-        - SessionCookie: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [friendly_name, attestation_response]
-              properties:
-                friendly_name:
-                  type: string
-                  maxLength: 100
-                attestation_response:
-                  type: object
-      responses:
-        "201":
-          description: Passkey enrolled.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [id, friendly_name, created_at]
-                properties:
-                  id:
-                    type: string
-                    format: uuid
-                  friendly_name:
-                    type: string
-                  created_at:
-                    type: string
-                    format: date-time
-  /api/v1/auth/passkeys/login/options:
-    post:
-      tags: [Auth]
-      summary: Generate WebAuthn FIDO2 Passkey sign-in or Admin step-up assertion challenge
-      operationId: beginPasskeyLogin
-      security:
-        - {}
-        - SessionCookie: []
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                step_up:
-                  type: boolean
-                  default: false
-                  description: When true with an active SessionCookie, scopes allowCredentials to the signed-in user with userVerification required.
-      responses:
-        "200":
-          description: PublicKeyCredentialRequestOptions payload.
-          content:
-            application/json:
-              schema:
-                type: object
-  /api/v1/auth/passkeys/login/verify:
-    post:
-      tags: [Auth]
-      summary: Verify WebAuthn FIDO2 Passkey assertion and establish session
-      operationId: completePasskeyLogin
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [assertion_response]
-              properties:
-                assertion_response:
-                  type: object
-      responses:
-        "200":
-          description: Passkey-verified session established.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthenticatedUser"
-  /api/v1/auth/external/{provider}/start:
-    get:
-      tags: [Auth]
-      summary: Initiate OAuth2/OIDC redirect for Google or GitHub sign-in or account linking
+      tags:
+      - Auth
+      summary: Initiate OAuth2/OIDC redirect for Google or GitHub sign-in or account
+        linking
       operationId: startExternalOAuth
       parameters:
-        - name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [google, github]
-        - name: return_url
-          in: query
-          description: Relative local path only (starts with /, never //, /\\, or external host; prevents CWE-601 open redirect).
-          schema:
-            type: string
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - google
+          - github
+      - name: return_url
+        in: query
+        description: Relative local path only (starts with /, never //, /\\, or external
+          host; prevents CWE-601 open redirect).
+        schema:
+          type: string
+      - name: intent
+        in: query
+        description: Use 'link' when attaching a second OAuth provider to an active
+          session; server cryptographically binds OAuth state to the active session
+          ID and verifies matching session on callback.
+        schema:
+          type: string
+          enum:
+          - login
+          - link
+          default: login
+      - name: reauth
+        in: query
+        description: When true, sends prompt=login / max_age=0 to refresh auth_time
+          (required within 10 minutes before DELETE /api/v1/auth/account).
+        schema:
+          type: boolean
+          default: false
       responses:
-        "302":
-          description: Redirects browser to external OAuth provider authorization endpoint.
-  /api/v1/auth/external/{provider}/callback:
+        '302':
+          description: Redirects browser to external OAuth provider authorization
+            endpoint.
+  "/api/v1/auth/external/{provider}/callback":
     get:
-      tags: [Auth]
+      tags:
+      - Auth
       summary: Complete OAuth2/OIDC authorization code callback for Google or GitHub
-      description: Validates state/PKCE correlation cookies, requires verified provider email before account linking, sets __Host-odm-session, and redirects to validated local return_url.
+      description: Validates state/PKCE correlation cookies, requires verified provider
+        email before account linking, sets __Host-odm-session, and redirects to validated
+        local return_url.
       operationId: completeExternalOAuth
       parameters:
-        - name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [google, github]
-        - name: code
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: state
-          in: query
-          required: true
-          schema:
-            type: string
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - google
+          - github
+      - name: code
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: state
+        in: query
+        required: true
+        schema:
+          type: string
       responses:
-        "302":
-          description: Redirects to validated local return_url with authenticated session cookie.
-        "400":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/auth/external/{provider}:
+        '302':
+          description: Redirects to validated local return_url with authenticated
+            session cookie.
+        '400':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/auth/external/{provider}":
     delete:
-      tags: [Auth]
+      tags:
+      - Auth
       summary: Unlink an external OAuth provider from the user account
       operationId: unlinkExternalProvider
       security:
-        - SessionCookie: []
+      - SessionCookie: []
       parameters:
-        - name: provider
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [google, github]
+      - name: provider
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - google
+          - github
       responses:
-        "204":
+        '204':
           description: External provider unlinked.
-        "409":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/auth/account:
+        '409':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/auth/account":
     delete:
-      tags: [Auth]
+      tags:
+      - Auth
       summary: Execute atomic hard-deletion cascade for the entire user account
-      description: Requires interactive browser session with recent re-authentication (never callable via OAuth Bearer or API keys).
+      description: Requires interactive browser session with recent re-authentication
+        (auth_time <= 10 minutes via /api/v1/auth/external/{provider}/start?reauth=true;
+        never callable via API keys). Returns 409 Conflict if an ingestion, recalibration,
+        or publish job is actively PROCESSING for any owned track.
       operationId: deleteAccount
       security:
-        - SessionCookie: []
+      - SessionCookie: []
       responses:
-        "200":
-          description: Account, devices, tracks, waypoints, and storage purged; returns PII-free deletion audit receipt.
+        '200':
+          description: Account, devices, tracks, waypoints, and storage purged; returns
+            synchronous deletion summary.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DeletionAuditReceipt"
-  /api/v1/auth/device/code:
-    post:
-      tags: [Auth]
-      summary: Initiate OAuth2 Device Authorization Grant (RFC 8628)
-      operationId: initiateDeviceAuth
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [client_id]
-              properties:
-                client_id:
-                  type: string
-                  example: opendepthmap-buoy
-                scope:
-                  type: string
-                  default: "write:tracks"
-      responses:
-        "200":
-          description: Device authorization challenge created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeviceCodeResponse"
-        "400":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/auth/device/token:
-    post:
-      tags: [Auth]
-      summary: Poll OAuth2 Device Authorization Grant for completion
-      operationId: pollDeviceToken
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [grant_type, device_code]
-              properties:
-                grant_type:
-                  type: string
-                  const: "urn:ietf:params:oauth:grant-type:device_code"
-                device_code:
-                  type: string
-                client_id:
-                  type: string
-      responses:
-        "200":
-          description: Pairing approved; returns scoped device access token and device API key.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeviceTokenResponse"
-        "400":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/auth/device/verify:
+                "$ref": "#/components/schemas/DeletionSummary"
+        '409':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/api-keys":
     get:
-      tags: [Auth]
-      summary: Look up pending RFC 8628 device pairing challenge details by user_code
-      operationId: lookupDeviceCode
-      security:
-        - SessionCookie: []
-      parameters:
-        - name: user_code
-          in: query
-          required: true
-          schema:
-            type: string
-            example: ODM-7K9P
-      responses:
-        "200":
-          description: Pending device pairing details shown for explicit user confirmation.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [user_code, client_id, scope, expires_at, status]
-                properties:
-                  user_code:
-                    type: string
-                  client_id:
-                    type: string
-                  scope:
-                    type: string
-                  expires_at:
-                    type: string
-                    format: date-time
-                  status:
-                    type: string
-                    enum: [PENDING, EXPIRED]
-        "404":
-          $ref: "#/components/responses/ProblemDetails"
-    post:
-      tags: [Auth]
-      summary: Approve or deny an RFC 8628 headless device pairing challenge from /device
-      operationId: verifyDeviceCode
-      security:
-        - SessionCookie: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [user_code, decision]
-              properties:
-                user_code:
-                  type: string
-                  example: ODM-7K9P
-                decision:
-                  type: string
-                  enum: [APPROVE, DENY]
-                device_id:
-                  type: [string, "null"]
-                  format: uuid
-                  description: Optional existing device to bind; if null, registers a new device profile.
-                device_name:
-                  type: [string, "null"]
-                  maxLength: 100
-                  description: Friendly name for the newly registered device when device_id is null.
-                device_category:
-                  type: [string, "null"]
-                  enum: [BOAT_CHARTPLOTTER, KAYAK_SOUNDER, SURVEY_BUOY, DIVE_COMPUTER, DIY_LOGGER, null]
-      responses:
-        "200":
-          description: Device authorization decision recorded.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [status]
-                properties:
-                  status:
-                    type: string
-                    enum: [APPROVED, DENIED]
-  /api/v1/api-keys:
-    get:
-      tags: [Auth]
+      tags:
+      - Auth
       summary: List Personal User API Keys
       operationId: listUserApiKeys
       security:
-        - SessionCookie: []
+      - SessionCookie: []
       responses:
-        "200":
-          description: List of Personal User API Key metadata (never returns raw key secrets).
+        '200':
+          description: List of Personal User API Key metadata (never returns raw key
+            secrets).
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required:
+                - items
                 properties:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/UserApiKeySummary"
+                      "$ref": "#/components/schemas/UserApiKeySummary"
     post:
-      tags: [Auth]
+      tags:
+      - Auth
       summary: Create a scoped Personal User API Key (odm_usr_ prefix)
       operationId: createUserApiKey
       security:
-        - SessionCookie: []
+      - SessionCookie: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateUserApiKeyRequest"
+              "$ref": "#/components/schemas/CreateUserApiKeyRequest"
       responses:
-        "201":
+        '201':
           description: Created Personal User API Key (raw secret shown once).
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateUserApiKeyResponse"
-        "400":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/api-keys/{keyId}:
+                "$ref": "#/components/schemas/CreateUserApiKeyResponse"
+        '400':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/api-keys/{keyId}":
     delete:
-      tags: [Auth]
+      tags:
+      - Auth
       summary: Revoke a Personal User API Key immediately
       operationId: revokeUserApiKey
       security:
-        - SessionCookie: []
+      - SessionCookie: []
       parameters:
-        - $ref: "#/components/parameters/KeyId"
+      - "$ref": "#/components/parameters/KeyId"
       responses:
-        "204":
+        '204':
           description: API key revoked.
-        "404":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/devices:
+        '404':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/devices":
     get:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: List registered vessels and field devices
       operationId: listDevices
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:prefs"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       responses:
-        "200":
+        '200':
           description: Registered devices owned by the authenticated user.
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required:
+                - items
                 properties:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/DeviceProfile"
+                      "$ref": "#/components/schemas/DeviceProfile"
     post:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Register a vessel or hardware device with sensor rig offsets
       operationId: registerDevice
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateDeviceRequest"
+              "$ref": "#/components/schemas/CreateDeviceRequest"
       responses:
-        "201":
-          description: Device registered; returns device profile and one-time Device API Key (odm_dev_).
+        '201':
+          description: Device registered; returns device profile and one-time Device
+            API Key (odm_dev_).
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateDeviceResponse"
-        "400":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/devices/{deviceId}:
+                "$ref": "#/components/schemas/CreateDeviceResponse"
+        '400':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/devices/{deviceId}":
     patch:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Update device identity metadata (name, category)
       operationId: updateDevice
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - $ref: "#/components/parameters/DeviceId"
+      - "$ref": "#/components/parameters/DeviceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateDeviceRequest"
+              "$ref": "#/components/schemas/UpdateDeviceRequest"
       responses:
-        "200":
+        '200':
           description: Updated device profile.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DeviceProfile"
+                "$ref": "#/components/schemas/DeviceProfile"
     delete:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Soft-deactivate a device and immediately revoke its Device API Key
-      description: >
-        Revokes the device credential and prevents future uploads while preserving historical
-        survey track provenance and calibration snapshots.
+      description: 'Revokes the device credential and prevents future uploads while
+        preserving historical survey track provenance and calibration snapshots.
+
+'
       operationId: deactivateDevice
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - $ref: "#/components/parameters/DeviceId"
+      - "$ref": "#/components/parameters/DeviceId"
       responses:
-        "204":
+        '204':
           description: Device deactivated and key revoked.
-  /api/v1/devices/{deviceId}/rotate-key:
+  "/api/v1/devices/{deviceId}/rotate-key":
     post:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Rotate a Device API Key (odm_dev_) without altering calibration history
       operationId: rotateDeviceApiKey
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
+      - SessionCookie: []
       parameters:
-        - $ref: "#/components/parameters/DeviceId"
+      - "$ref": "#/components/parameters/DeviceId"
       responses:
-        "200":
-          description: Previous device key immediately revoked; returns new one-time plaintext Device API Key.
+        '200':
+          description: Previous device key immediately revoked; returns new one-time
+            plaintext Device API Key.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateDeviceResponse"
-  /api/v1/devices/{deviceId}/calibrations:
+                "$ref": "#/components/schemas/CreateDeviceResponse"
+  "/api/v1/devices/{deviceId}/calibrations":
     get:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: List effective-dated sensor rig calibration revisions for a device
       operationId: listDeviceCalibrations
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:prefs"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - $ref: "#/components/parameters/DeviceId"
+      - "$ref": "#/components/parameters/DeviceId"
       responses:
-        "200":
+        '200':
           description: Chronological non-overlapping calibration revisions.
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required:
+                - items
                 properties:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/DeviceCalibrationRevision"
+                      "$ref": "#/components/schemas/DeviceCalibrationRevision"
     post:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Add a new effective-dated sensor rig calibration revision
-      description: >
-        Records a time-bounded sensor rig offset revision without mutating existing tracks.
-        Automatically closes an open-ended prior revision when effective_from is later;
-        returns 409 Conflict if the range overlaps an existing closed revision.
+      description: 'Records a time-bounded sensor rig offset revision without mutating
+        existing tracks. Automatically closes an open-ended prior revision when effective_from
+        is later; returns 409 Conflict if the range overlaps an existing closed revision.
+
+'
       operationId: createDeviceCalibration
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - $ref: "#/components/parameters/DeviceId"
+      - "$ref": "#/components/parameters/DeviceId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateDeviceCalibrationRequest"
+              "$ref": "#/components/schemas/CreateDeviceCalibrationRequest"
       responses:
-        "201":
+        '201':
           description: Calibration revision recorded.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DeviceCalibrationRevision"
-        "409":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/devices/{deviceId}/calibrations/{revisionId}:
+                "$ref": "#/components/schemas/DeviceCalibrationRevision"
+        '409':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/devices/{deviceId}/calibrations/{revisionId}":
     patch:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Correct an existing effective-dated sensor rig calibration revision
-      description: >
-        Updates a historical or active calibration revision without silently mutating existing tracks.
-        Tracks captured within the revision window are marked calibration_stale=true so owners
-        can explicitly trigger POST /api/v1/tracks/{trackId}/recalibrate.
+      description: 'Updates a historical or active calibration revision without silently
+        mutating existing tracks. Tracks captured within the revision window are marked
+        calibration_stale=true so owners can explicitly trigger POST /api/v1/tracks/{trackId}/recalibrate.
+
+'
       operationId: updateDeviceCalibration
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - $ref: "#/components/parameters/DeviceId"
-        - name: revisionId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - "$ref": "#/components/parameters/DeviceId"
+      - name: revisionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateDeviceCalibrationRequest"
+              "$ref": "#/components/schemas/UpdateDeviceCalibrationRequest"
       responses:
-        "200":
+        '200':
           description: Calibration revision updated.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DeviceCalibrationRevision"
-        "409":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/tracks/upload-url:
+                "$ref": "#/components/schemas/DeviceCalibrationRevision"
+        '409':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/tracks/upload-url":
     post:
-      tags: [Ingestion]
-      summary: Request a 15-minute single-use signed direct PUT URL for raw sonar/track upload
-      description: >
-        When authenticated with a DeviceApiKey (odm_dev_), request.device_id MUST match the
-        device bound to that key; mismatches return 403 Forbidden.
+      tags:
+      - Ingestion
+      summary: Request a 15-minute single-use signed direct PUT URL for raw sonar/track
+        upload
+      description: 'When authenticated with a DeviceApiKey (odm_dev_), request.device_id
+        MUST match the device bound to that key; mismatches return 403 Forbidden.
+
+'
       operationId: requestTrackUploadUrl
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
-        - UserApiKey: []
-        - DeviceApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
+      - DeviceApiKey: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UploadUrlRequest"
+              "$ref": "#/components/schemas/UploadUrlRequest"
       responses:
-        "201":
-          description: Ingestion job created in PENDING_UPLOAD state with scoped single-use signed PUT URL.
+        '201':
+          description: Ingestion job created in PENDING_UPLOAD state with scoped single-use
+            signed PUT URL.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UploadUrlResponse"
-        "400":
-          $ref: "#/components/responses/ProblemDetails"
-        "403":
-          $ref: "#/components/responses/ProblemDetails"
-        "413":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/jobs:
+                "$ref": "#/components/schemas/UploadUrlResponse"
+        '400':
+          "$ref": "#/components/responses/ProblemDetails"
+        '403':
+          "$ref": "#/components/responses/ProblemDetails"
+        '413':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/jobs":
     get:
-      tags: [Ingestion]
-      summary: List recent asynchronous jobs (ingestion, recalibration, publish, export, offline pack, media) owned by the user
+      tags:
+      - Ingestion
+      summary: List recent asynchronous jobs (ingestion, recalibration, publish, export,
+        offline pack) owned by the user
       operationId: listUserJobs
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:public"]
-        - OAuth2Bearer: ["read:prefs"]
-        - OAuth2Bearer: ["write:tracks"]
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - name: job_type
-          in: query
-          schema:
-            type: string
-            enum: [INGESTION, RECALIBRATE, EXPORT, OFFLINE_PACK, PUBLISH, MEDIA_PROCESSING]
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 25
-        - name: cursor
-          in: query
-          schema:
-            type: string
+      - name: job_type
+        in: query
+        schema:
+          type: string
+          enum:
+          - INGESTION
+          - RECALIBRATE
+          - EXPORT
+          - OFFLINE_PACK
+          - PUBLISH
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 25
+      - name: cursor
+        in: query
+        schema:
+          type: string
       responses:
-        "200":
+        '200':
           description: Paginated list of user jobs.
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required:
+                - items
                 properties:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/JobStatusResponse"
+                      "$ref": "#/components/schemas/JobStatusResponse"
                   next_cursor:
-                    type: [string, "null"]
-  /api/v1/jobs/{jobId}:
+                    type:
+                    - string
+                    - 'null'
+  "/api/v1/jobs/{jobId}":
     get:
-      tags: [Ingestion]
-      summary: Get asynchronous ingestion, recalibration, publish, export, offline pack, or media job status
-      description: >
-        When authenticated with a DeviceApiKey (odm_dev_), access is strictly restricted to
-        INGESTION jobs whose device_id matches the key's bound device (returns 404 otherwise).
-        Anonymous public export callers should poll GET /api/v1/exports/{jobId} using the returned status_token.
+      tags:
+      - Ingestion
+      summary: Get asynchronous ingestion, recalibration, publish, export, or offline
+        pack job status
+      description: 'When authenticated with a DeviceApiKey (odm_dev_), access is strictly
+        restricted to INGESTION jobs whose device_id matches the key''s bound device
+        (returns 404 otherwise). Anonymous public export callers should poll GET /api/v1/exports/{jobId}
+        using the returned status_token.
+
+'
       operationId: getJobStatus
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:public"]
-        - OAuth2Bearer: ["read:prefs"]
-        - OAuth2Bearer: ["write:tracks"]
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
-        - DeviceApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
+      - DeviceApiKey: []
       parameters:
-        - $ref: "#/components/parameters/JobId"
+      - "$ref": "#/components/parameters/JobId"
       responses:
-        "200":
+        '200':
           description: Current job status and progress.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/JobStatusResponse"
-        "404":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/tracks:
+                "$ref": "#/components/schemas/JobStatusResponse"
+        '404':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/tracks":
     get:
-      tags: [Tracks]
+      tags:
+      - Tracks
       summary: List, search, and filter survey tracks owned by the authenticated user
       operationId: listUserTracks
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - name: q
-          in: query
-          description: Case-insensitive fuzzy title search.
-          schema:
-            type: string
-            maxLength: 100
-        - name: is_public
-          in: query
-          schema:
-            type: boolean
-        - name: device_id
-          in: query
-          description: Filter tracks recorded by a specific boat or device.
-          schema:
-            type: string
-            format: uuid
-        - name: modality
-          in: query
-          schema:
-            type: string
-            enum: [BATHYMETRIC_SONAR, DIVE_PROFILE]
-        - name: from
-          in: query
-          description: Filter tracks with started_at >= from (RFC 3339).
-          schema:
-            type: string
-            format: date-time
-        - name: to
-          in: query
-          description: Filter tracks with started_at <= to (RFC 3339).
-          schema:
-            type: string
-            format: date-time
-        - name: bbox
-          in: query
-          description: Filter tracks intersecting current map view (minLon,minLat,maxLon,maxLat).
-          schema:
-            type: string
-        - name: sort
-          in: query
-          schema:
-            type: string
-            enum: [newest, oldest, title, deepest]
-            default: newest
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 200
-            default: 50
-        - name: cursor
-          in: query
-          schema:
-            type: string
+      - name: q
+        in: query
+        description: Case-insensitive fuzzy title search.
+        schema:
+          type: string
+          maxLength: 100
+      - name: is_public
+        in: query
+        schema:
+          type: boolean
+      - name: device_id
+        in: query
+        description: Filter tracks recorded by a specific boat or device.
+        schema:
+          type: string
+          format: uuid
+      - name: modality
+        in: query
+        schema:
+          type: string
+          enum:
+          - BATHYMETRIC_SONAR
+          - DIVE_PROFILE
+      - name: from
+        in: query
+        description: Filter tracks with started_at >= from (RFC 3339).
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        description: Filter tracks with started_at <= to (RFC 3339).
+        schema:
+          type: string
+          format: date-time
+      - name: bbox
+        in: query
+        description: Filter tracks intersecting current map view (minLon,minLat,maxLon,maxLat).
+        schema:
+          type: string
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - newest
+          - oldest
+          - title
+          - deepest
+          default: newest
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        schema:
+          type: string
       responses:
-        "200":
+        '200':
           description: Paginated list of survey tracks.
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required:
+                - items
                 properties:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/SurveyTrackSummary"
+                      "$ref": "#/components/schemas/SurveyTrackSummary"
                   next_cursor:
-                    type: [string, "null"]
-  /api/v1/tracks/{trackId}:
+                    type:
+                    - string
+                    - 'null'
+  "/api/v1/tracks/{trackId}":
     get:
-      tags: [Tracks]
+      tags:
+      - Tracks
       summary: Get survey track metadata, vertical datum, and QC statistics
-      description: >
-        For non-owner or anonymous callers, returns only published BATHYMETRIC_SONAR tracks using
-        post-redaction public_bbox and 15-minute quantized timestamps (DIVE_PROFILE and unpublished
+      description: 'For non-owner or anonymous callers, returns only published BATHYMETRIC_SONAR
+        tracks using post-redaction public_bbox, public_sounding_count, per-track
+        pseudonym device_id, and 15-minute quantized timestamps whenever trim_start_m > 0
+        or trim_end_m > 0. Owner-only raw QC counts (good/suspect/bad_sounding_count),
+        calibration_revision_id, calibration_stale, and manual offset/default fields
+        are omitted to prevent privacy side-channel inference (DIVE_PROFILE and unpublished
         tracks return 404).
+
+'
       operationId: getTrack
       security:
-        - {}
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
+      - {}
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - $ref: "#/components/parameters/TrackId"
+      - "$ref": "#/components/parameters/TrackId"
       responses:
-        "200":
+        '200':
           description: Survey track details.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SurveyTrackSummary"
-        "404":
-          $ref: "#/components/responses/ProblemDetails"
+                "$ref": "#/components/schemas/SurveyTrackSummary"
+        '404':
+          "$ref": "#/components/responses/ProblemDetails"
     patch:
-      tags: [Tracks]
-      summary: Update track metadata, water body type, tide station override, or manual offset
-      description: >
-        Persists metadata updates immediately. If water_body_type, tide_station_id_override,
+      tags:
+      - Tracks
+      summary: Update track metadata, water body type, tide station override, or manual
+        offset
+      description: 'Persists metadata updates immediately. If water_body_type, tide_station_id_override,
         manual_water_level_offset_m, or default temp/salinity changed, marks calibration_stale=true
         so the owner can trigger POST /api/v1/tracks/{trackId}/recalibrate.
+
+'
       operationId: updateTrack
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - $ref: "#/components/parameters/TrackId"
+      - "$ref": "#/components/parameters/TrackId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateTrackRequest"
+              "$ref": "#/components/schemas/UpdateTrackRequest"
       responses:
-        "200":
+        '200':
           description: Updated survey track metadata.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SurveyTrackSummary"
+                "$ref": "#/components/schemas/SurveyTrackSummary"
     delete:
-      tags: [Tracks]
+      tags:
+      - Tracks
       summary: Execute atomic hard-deletion cascade for a survey track
       operationId: deleteTrack
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
+      - SessionCookie: []
       parameters:
-        - $ref: "#/components/parameters/TrackId"
+      - "$ref": "#/components/parameters/TrackId"
       responses:
-        "200":
-          description: Track hard-deleted across relational store, object archives, and tile caches; returns immutable audit receipt.
+        '200':
+          description: Track hard-deleted across relational store, object archives,
+            and tile caches; returns deletion summary (SHA-256 hash-chained audit
+            receipt added in Phase 1.5).
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DeletionAuditReceipt"
-        "404":
-          $ref: "#/components/responses/ProblemDetails"
-        "409":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/tracks/{trackId}/nearby-tide-stations:
+                "$ref": "#/components/schemas/DeletionSummary"
+        '404':
+          "$ref": "#/components/responses/ProblemDetails"
+        '409':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/tracks/{trackId}/nearby-tide-stations":
     get:
-      tags: [Tracks]
-      summary: Return top 3 nearby NOAA CO-OPS stations for peninsula/estuary tide override
+      tags:
+      - Tracks
+      summary: Return top 3 nearby NOAA CO-OPS stations for peninsula/estuary tide
+        override
       operationId: getNearbyTideStations
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - $ref: "#/components/parameters/TrackId"
+      - "$ref": "#/components/parameters/TrackId"
       responses:
-        "200":
+        '200':
           description: Nearest active NOAA CO-OPS stations ranked by distance.
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required:
+                - items
                 properties:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/TideStationOption"
-  /api/v1/tracks/{trackId}/privacy-settings:
+                      "$ref": "#/components/schemas/TideStationOption"
+  "/api/v1/tracks/{trackId}/privacy-settings":
     get:
-      tags: [Tracks]
-      summary: Get the owner's saved entry/exit trim, blur, and grid-binning settings for a track
+      tags:
+      - Tracks
+      summary: Get the owner's saved entry/exit trim settings for a track
       operationId: getTrackPrivacySettings
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - $ref: "#/components/parameters/TrackId"
+      - "$ref": "#/components/parameters/TrackId"
       responses:
-        "200":
+        '200':
           description: Saved privacy settings (or defaults if never published).
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TrackPrivacySettingsResponse"
-        "404":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/tracks/{trackId}/profile:
+                "$ref": "#/components/schemas/TrackPrivacySettingsResponse"
+        '404':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/tracks/{trackId}/profile":
     get:
-      tags: [Tracks]
+      tags:
+      - Tracks
       summary: Fetch decimated distance-vs-depth profile series for depth chart inspection
-      description: >
-        For non-owner or anonymous callers, reads strictly from the post-redaction, post-fuzz
-        public sounding archive (never raw or unredacted private soundings) and returns 404 for
-        unpublished or DIVE_PROFILE tracks.
+      description: 'For non-owner or anonymous callers, reads strictly from the post-redaction,
+        post-trim public sounding archive (never raw or unredacted private soundings)
+        and returns 404 for unpublished or DIVE_PROFILE tracks.
+
+'
       operationId: getTrackProfile
       security:
-        - {}
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
+      - {}
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - $ref: "#/components/parameters/TrackId"
+      - "$ref": "#/components/parameters/TrackId"
       responses:
-        "200":
+        '200':
           description: Decimated track depth profile points (<= 2,000 samples).
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TrackProfileResponse"
-  /api/v1/tracks/{trackId}/recalibrate:
+                "$ref": "#/components/schemas/TrackProfileResponse"
+  "/api/v1/tracks/{trackId}/recalibrate":
     post:
-      tags: [Tracks]
-      summary: Explicitly re-run calibration over immutable raw soundings using the updated rig revision
+      tags:
+      - Tracks
+      summary: Explicitly re-run calibration over immutable raw soundings using the
+        updated rig revision
       operationId: recalibrateTrack
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
+      - SessionCookie: []
       parameters:
-        - $ref: "#/components/parameters/TrackId"
+      - "$ref": "#/components/parameters/TrackId"
       responses:
-        "202":
+        '202':
           description: Recalibration job queued.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/JobStatusResponse"
-  /api/v1/tracks/{trackId}/publish:
+                "$ref": "#/components/schemas/JobStatusResponse"
+  "/api/v1/tracks/{trackId}/publish":
     post:
-      tags: [Tracks]
-      summary: Apply user-chosen entry/exit trim, polygon redaction, and optional endpoint fuzzing, then publish track publicly
+      tags:
+      - Tracks
+      summary: Apply entry/exit trim sliders and redaction polygons, then publish
+        track publicly
       operationId: publishTrack
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
+      - SessionCookie: []
       parameters:
-        - $ref: "#/components/parameters/TrackId"
+      - "$ref": "#/components/parameters/TrackId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PublishTrackRequest"
+              "$ref": "#/components/schemas/PublishTrackRequest"
       responses:
-        "202":
+        '202':
           description: Privacy redaction and public archive generation accepted.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PublishTrackResponse"
-  /api/v1/tracks/{trackId}/unpublish:
+                "$ref": "#/components/schemas/PublishTrackResponse"
+  "/api/v1/tracks/{trackId}/unpublish":
     post:
-      tags: [Tracks]
-      summary: Pull a published track back to private without deleting it from the owner vault
-      description: >
-        Sets is_public=false, clears public_geom and public_bbox, deletes public GeoParquet partitions,
-        and triggers an immediate priority regional PMTiles shard rebuild plus CDN purge while preserving
-        the owner private track. External Zenodo DOI snapshots remain immutable as disclosed in Contributor Terms.
+      tags:
+      - Tracks
+      summary: Pull a published track back to private without deleting it from the
+        owner vault
+      description: 'Sets is_public=false, clears public_geom and public_bbox, deletes
+        public GeoParquet partitions, and triggers an immediate priority regional
+        PMTiles shard rebuild plus CDN purge while preserving the owner private track.
+
+'
       operationId: unpublishTrack
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
+      - SessionCookie: []
       parameters:
-        - $ref: "#/components/parameters/TrackId"
+      - "$ref": "#/components/parameters/TrackId"
       responses:
-        "200":
+        '200':
           description: Track unpublished and removed from live public maps and APIs.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UnpublishTrackResponse"
-        "404":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/search:
+                "$ref": "#/components/schemas/UnpublishTrackResponse"
+        '404':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/search":
     get:
-      tags: [Catalog]
-      summary: Unified map search across OpenDepthMap sites, public tracks, tide stations, and OSM places
-      description: >
-        Combines fast full-text and spatial search over published waypoints, published bathymetric tracks,
-        and NOAA tide stations with server-cached OpenStreetMap place geocoding for harbors,
-        bays, coves, and lakes. Direct lat/lon coordinate parsing is performed client-side without hitting this endpoint.
+      tags:
+      - Catalog
+      summary: Unified map search across OpenDepthMap sites, public tracks, tide stations,
+        and OSM places
+      description: 'Combines fast full-text and spatial search over published waypoints,
+        published bathymetric tracks, and NOAA tide stations with server-cached OpenStreetMap
+        place geocoding for harbors, bays, coves, and lakes. Direct lat/lon coordinate
+        parsing is performed client-side without hitting this endpoint.
+
+'
       operationId: searchMap
       security: []
       parameters:
-        - name: q
-          in: query
-          required: true
-          schema:
-            type: string
-            minLength: 2
-            maxLength: 120
-        - name: bbox
-          in: query
-          description: Optional viewport bias (minLon,minLat,maxLon,maxLat).
-          schema:
-            type: string
-        - name: types
-          in: query
-          description: Optional comma-separated filter of result types (waypoint,track,tide_station,place).
-          schema:
-            type: string
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 25
-            default: 10
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 2
+          maxLength: 120
+      - name: bbox
+        in: query
+        description: Optional viewport bias (minLon,minLat,maxLon,maxLat).
+        schema:
+          type: string
+      - name: types
+        in: query
+        description: Optional comma-separated filter of result types (waypoint,track,tide_station,place).
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 25
+          default: 10
       responses:
-        "200":
+        '200':
           description: Grouped map search results.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SearchResponse"
-        "429":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/tides/stations:
+                "$ref": "#/components/schemas/SearchResponse"
+        '429':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/tides/stations":
     get:
-      tags: [Catalog]
-      summary: List cached NOAA CO-OPS tide stations and optional NDBC weather/wave buoys in a bounding box
+      tags:
+      - Catalog
+      summary: List cached NOAA CO-OPS tide stations and optional NDBC weather/wave
+        buoys in a bounding box
       operationId: listMarineStations
       security: []
       parameters:
-        - name: bbox
-          in: query
-          required: true
-          description: Bounding box (minLon,minLat,maxLon,maxLat).
-          schema:
-            type: string
-        - name: include_ndbc
-          in: query
-          schema:
-            type: boolean
-            default: true
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 200
-            default: 100
+      - name: bbox
+        in: query
+        required: true
+        description: Bounding box (minLon,minLat,maxLon,maxLat).
+        schema:
+          type: string
+      - name: include_ndbc
+        in: query
+        schema:
+          type: boolean
+          default: true
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 100
       responses:
-        "200":
-          description: Cached tide stations and marine weather buoys intersecting bbox.
+        '200':
+          description: Cached tide stations and marine weather buoys intersecting
+            bbox.
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required:
+                - items
                 properties:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/MarineStationItem"
-  /api/v1/privacy/redaction-zones:
+                      "$ref": "#/components/schemas/MarineStationItem"
+  "/api/v1/privacy/redaction-zones":
     get:
-      tags: [Privacy]
+      tags:
+      - Privacy
       summary: List personal spatial redaction polygons
       operationId: listRedactionZones
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
+      - SessionCookie: []
       responses:
-        "200":
+        '200':
           description: Redaction polygons owned by the authenticated user.
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required:
+                - items
                 properties:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/RedactionZone"
+                      "$ref": "#/components/schemas/RedactionZone"
     post:
-      tags: [Privacy]
+      tags:
+      - Privacy
       summary: Create a personal spatial redaction polygon
       operationId: createRedactionZone
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
+      - SessionCookie: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateRedactionZoneRequest"
+              "$ref": "#/components/schemas/CreateRedactionZoneRequest"
       responses:
-        "201":
+        '201':
           description: Redaction zone created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RedactionZone"
-  /api/v1/privacy/redaction-zones/{zoneId}:
+                "$ref": "#/components/schemas/RedactionZone"
+  "/api/v1/privacy/redaction-zones/{zoneId}":
     patch:
-      tags: [Privacy]
-      summary: Update a personal spatial redaction polygon (triggers retroactive re-redaction on published tracks)
+      tags:
+      - Privacy
+      summary: Update a personal spatial redaction polygon (triggers retroactive re-redaction
+        on published tracks)
       operationId: updateRedactionZone
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
+      - SessionCookie: []
       parameters:
-        - name: zoneId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: zoneId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       requestBody:
         required: true
         content:
@@ -1298,729 +1100,599 @@ paths:
                 is_active:
                   type: boolean
       responses:
-        "200":
+        '200':
           description: Redaction zone updated.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RedactionZone"
+                "$ref": "#/components/schemas/RedactionZone"
     delete:
-      tags: [Privacy]
+      tags:
+      - Privacy
       summary: Delete a personal spatial redaction polygon
       operationId: deleteRedactionZone
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
+      - SessionCookie: []
       parameters:
-        - name: zoneId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "204":
-          description: Redaction zone removed.
-  /api/v1/privacy/takedowns:
-    get:
-      tags: [Privacy]
-      summary: List protected cultural site takedown submissions created by the authenticated SiteSteward
-      operationId: listStewardTakedowns
-      security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:prefs"]
-      responses:
-        "200":
-          description: Takedown requests submitted by the steward.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [items]
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/SiteTakedownResponse"
-    post:
-      tags: [Privacy]
-      summary: Register a protected cultural site or wreck takedown polygon (SiteSteward)
-      operationId: createSiteTakedown
-      security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:tracks"]
-      requestBody:
+      - name: zoneId
+        in: path
         required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateSiteTakedownRequest"
+        schema:
+          type: string
+          format: uuid
       responses:
-        "201":
-          description: Protected site takedown submitted.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SiteTakedownResponse"
-  /api/v1/privacy/deletion-receipts/{receiptId}:
+        '204':
+          description: Redaction zone removed.
+  "/api/v1/waypoints":
     get:
-      tags: [Privacy]
-      summary: Retrieve an immutable hard-deletion audit receipt
-      operationId: getDeletionReceipt
-      security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
-      parameters:
-        - name: receiptId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: Deletion audit receipt.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeletionAuditReceipt"
-  /api/v1/waypoints:
-    get:
-      tags: [Waypoints]
+      tags:
+      - Waypoints
       summary: List public or user-owned subsea waypoints
       operationId: listWaypoints
       security:
-        - {}
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
+      - {}
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - name: bbox
-          in: query
-          schema:
-            type: string
-            description: minLon,minLat,maxLon,maxLat
-        - name: track_id
-          in: query
-          schema:
-            type: string
-            format: uuid
+      - name: bbox
+        in: query
+        schema:
+          type: string
+          description: minLon,minLat,maxLon,maxLat
+      - name: track_id
+        in: query
+        schema:
+          type: string
+          format: uuid
       responses:
-        "200":
+        '200':
           description: Matching waypoints.
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required:
+                - items
                 properties:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Waypoint"
+                      "$ref": "#/components/schemas/Waypoint"
     post:
-      tags: [Waypoints]
-      summary: Create and enrich a subsea waypoint (CMECS / Darwin Core)
+      tags:
+      - Waypoints
+      summary: Create a subsea or navigation waypoint
       operationId: createWaypoint
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:waypoints"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateWaypointRequest"
+              "$ref": "#/components/schemas/CreateWaypointRequest"
       responses:
-        "201":
+        '201':
           description: Waypoint created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Waypoint"
-  /api/v1/waypoints/{waypointId}:
+                "$ref": "#/components/schemas/Waypoint"
+  "/api/v1/waypoints/{waypointId}":
     patch:
-      tags: [Waypoints]
-      summary: Update waypoint enrichment (CMECS, Darwin Core, title, notes, visibility)
+      tags:
+      - Waypoints
+      summary: Update waypoint title, notes, category, substrate, depth, or visibility
       operationId: updateWaypoint
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:waypoints"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - name: waypointId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: waypointId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateWaypointRequest"
+              "$ref": "#/components/schemas/UpdateWaypointRequest"
       responses:
-        "200":
+        '200':
           description: Updated waypoint.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Waypoint"
+                "$ref": "#/components/schemas/Waypoint"
     delete:
-      tags: [Waypoints]
-      summary: Delete a waypoint, purge its media objects, and return a deletion audit receipt
+      tags:
+      - Waypoints
+      summary: Delete a waypoint and return a synchronous deletion summary
       operationId: deleteWaypoint
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:waypoints"]
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - name: waypointId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: Waypoint purged and receipt issued.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DeletionAuditReceipt"
-  /api/v1/waypoints/{waypointId}/media/upload-url:
-    post:
-      tags: [Waypoints]
-      summary: Request a single-use signed PUT URL for waypoint photo upload (<= 15 MiB)
-      description: >
-        Accepts JPEG, PNG, or WebP images up to 15 MiB. Server extracts EXIF capture timestamp
-        for dive-track correlation and strips non-timestamp EXIF PII prior to public serving.
-      operationId: requestWaypointMediaUploadUrl
-      security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:waypoints"]
-        - UserApiKey: []
-      parameters:
-        - name: waypointId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
+      - name: waypointId
+        in: path
         required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [filename, content_type, byte_size]
-              properties:
-                filename:
-                  type: string
-                  maxLength: 255
-                content_type:
-                  type: string
-                  enum: [image/jpeg, image/png, image/webp]
-                byte_size:
-                  type: integer
-                  minimum: 1
-                  maximum: 15728640
+        schema:
+          type: string
+          format: uuid
       responses:
-        "201":
-          description: Single-use signed PUT URL issued.
+        '200':
+          description: Waypoint deleted.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UploadUrlResponse"
-  /api/v1/waypoints/{waypointId}/media/{mediaId}:
+                "$ref": "#/components/schemas/DeletionSummary"
+  "/api/v1/routes":
     get:
-      tags: [Waypoints]
-      summary: Fetch an EXIF-stripped waypoint photo (public if waypoint is published and not suppressed; owner otherwise)
-      operationId: getWaypointMedia
-      security:
-        - {}
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
-      parameters:
-        - name: waypointId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: Sanitized photo binary stream (EXIF GPS/serial metadata stripped).
-          content:
-            image/jpeg:
-              schema:
-                type: string
-                format: binary
-            image/png:
-              schema:
-                type: string
-                format: binary
-            image/webp:
-              schema:
-                type: string
-                format: binary
-        "302":
-          description: Short-lived signed redirect to sanitized media asset.
-        "404":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/routes:
-    get:
-      tags: [Routing]
+      tags:
+      - Routing
       summary: List user planned water routes and survey transects
       operationId: listRoutes
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
+      - SessionCookie: []
+      - UserApiKey: []
       responses:
-        "200":
+        '200':
           description: Planned routes and survey transects.
           content:
             application/json:
               schema:
                 type: object
-                required: [items]
+                required:
+                - items
                 properties:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/PlannedRoute"
+                      "$ref": "#/components/schemas/PlannedRoute"
     post:
-      tags: [Routing]
-      summary: Create a planned route or survey transect with computed leg headings and time estimates
+      tags:
+      - Routing
+      summary: Create a planned route or survey transect with computed leg headings
+        and time estimates
       operationId: createRoute
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:waypoints"]
+      - SessionCookie: []
+      - UserApiKey: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreatePlannedRouteRequest"
+              "$ref": "#/components/schemas/CreatePlannedRouteRequest"
       responses:
-        "201":
+        '201':
           description: Planned route created with leg calculations.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PlannedRoute"
-  /api/v1/routes/{routeId}:
+                "$ref": "#/components/schemas/PlannedRoute"
+  "/api/v1/routes/{routeId}":
     patch:
-      tags: [Routing]
-      summary: Update a planned route or survey transect and recompute magnetic leg bearings
+      tags:
+      - Routing
+      summary: Update a planned route or survey transect and recompute magnetic leg
+        bearings
       operationId: updateRoute
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:waypoints"]
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - name: routeId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: routeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdatePlannedRouteRequest"
+              "$ref": "#/components/schemas/UpdatePlannedRouteRequest"
       responses:
-        "200":
+        '200':
           description: Updated planned route.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PlannedRoute"
+                "$ref": "#/components/schemas/PlannedRoute"
     delete:
-      tags: [Routing]
+      tags:
+      - Routing
       summary: Delete a planned route (preserves already-built offline packs)
       operationId: deleteRoute
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["write:waypoints"]
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - name: routeId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: routeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
-        "204":
+        '204':
           description: Planned route deleted.
-  /api/v1/routes/{routeId}/compare/{trackId}:
+  "/api/v1/routes/{routeId}/compare/{trackId}":
     get:
-      tags: [Routing]
+      tags:
+      - Routing
       summary: Compute planned-vs-actual cross-track error (XTE) and depth deviations
       operationId: compareRouteToTrack
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - name: routeId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - $ref: "#/components/parameters/TrackId"
+      - name: routeId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - "$ref": "#/components/parameters/TrackId"
       responses:
-        "200":
+        '200':
           description: Drift and depth deviation analytics.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RouteComparisonResponse"
-  /api/v1/packs/offline:
+                "$ref": "#/components/schemas/RouteComparisonResponse"
+  "/api/v1/packs/offline":
     post:
-      tags: [Routing]
-      summary: Queue asynchronous generation of a regional offline .pmtiles chart pack
+      tags:
+      - Routing
+      summary: Queue asynchronous generation of a regional offline .pmtiles chart
+        pack
       operationId: requestOfflinePack
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:public"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateOfflinePackRequest"
+              "$ref": "#/components/schemas/CreateOfflinePackRequest"
       responses:
-        "202":
+        '202':
           description: Offline pack job queued.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/JobStatusResponse"
-  /api/v1/exports:
+                "$ref": "#/components/schemas/JobStatusResponse"
+  "/api/v1/exports":
     post:
-      tags: [Exports]
-      summary: Queue a GeoParquet 1.1 or IHO B-12 CSB export job (CF-NetCDF and COG roll out in Phase 1.5)
+      tags:
+      - Exports
+      summary: Queue a GeoParquet 1.1 or IHO B-12 CSB export job
+      description: 'Enforces hard abuse caps: BBOX scope <= 10,000 km^2 (400 if exceeded),
+        max 2 concurrent active export/pack jobs per authenticated user, max 1 concurrent
+        active export job per anonymous client IP, and global anonymous export queue
+        cap (429 if exceeded).'
       operationId: createExportJob
       security:
-        - {}
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:public"]
-        - UserApiKey: []
+      - {}
+      - SessionCookie: []
+      - UserApiKey: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateExportRequest"
+              "$ref": "#/components/schemas/CreateExportRequest"
       responses:
-        "202":
+        '202':
           description: Export job queued.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/JobStatusResponse"
-  /api/v1/exports/{jobId}:
+                "$ref": "#/components/schemas/JobStatusResponse"
+        '400':
+          "$ref": "#/components/responses/ProblemDetails"
+        '429':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/exports/{jobId}":
     get:
-      tags: [Exports]
+      tags:
+      - Exports
       summary: Poll status of a public anonymous export job using its signed status_token
       operationId: getPublicExportJobStatus
       security: []
       parameters:
-        - $ref: "#/components/parameters/JobId"
-        - name: status_token
-          in: query
-          required: true
-          description: Short-lived HMAC token returned by POST /api/v1/exports for anonymous public exports.
-          schema:
-            type: string
+      - "$ref": "#/components/parameters/JobId"
+      - name: status_token
+        in: query
+        required: true
+        description: Short-lived HMAC token returned by POST /api/v1/exports for anonymous
+          public exports.
+        schema:
+          type: string
       responses:
-        "200":
+        '200':
           description: Public export job status and download URL once completed.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/JobStatusResponse"
-        "404":
-          $ref: "#/components/responses/ProblemDetails"
-  /api/v1/releases:
+                "$ref": "#/components/schemas/JobStatusResponse"
+        '404':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/contributors/{displayName}":
     get:
-      tags: [Exports]
-      summary: List published DOI-ready bathymetric dataset releases
-      operationId: listDatasetReleases
-      responses:
-        "200":
-          description: Published dataset releases.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [items]
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/DatasetRelease"
-  /api/v1/contributors/{displayName}:
-    get:
-      tags: [Auth]
+      tags:
+      - Auth
       summary: View public contributor profile and activity feed
       operationId: getPublicContributor
       parameters:
-        - name: displayName
-          in: path
-          required: true
-          schema:
-            type: string
+      - name: displayName
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
-        "200":
+        '200':
           description: Public contributor summary.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ContributorProfile"
-  /ogc:
+                "$ref": "#/components/schemas/ContributorProfile"
+  "/ogc":
     get:
-      tags: [OGC]
+      tags:
+      - OGC
       summary: OGC API - Features landing page
       operationId: ogcLanding
       responses:
-        "200":
+        '200':
           description: OGC landing page JSON.
           content:
             application/json:
               schema:
                 type: object
-  /ogc/conformance:
+  "/ogc/conformance":
     get:
-      tags: [OGC]
+      tags:
+      - OGC
       summary: OGC API - Features conformance classes
       operationId: ogcConformance
       responses:
-        "200":
+        '200':
           description: Supported OGC conformance URIs.
           content:
             application/json:
               schema:
                 type: object
-                required: [conformsTo]
+                required:
+                - conformsTo
                 properties:
                   conformsTo:
                     type: array
                     items:
                       type: string
                       format: uri
-  /ogc/collections:
+  "/ogc/collections":
     get:
-      tags: [OGC]
+      tags:
+      - OGC
       summary: List OGC API - Features collections
       operationId: ogcCollections
       responses:
-        "200":
+        '200':
           description: Available public bathymetric collections.
           content:
             application/json:
               schema:
                 type: object
-  /ogc/collections/{collectionId}/items:
+  "/ogc/collections/{collectionId}/items":
     get:
-      tags: [OGC]
+      tags:
+      - OGC
       summary: Query OGC API - Features items
       operationId: ogcCollectionItems
       security:
-        - {}
-        - UserApiKey: []
+      - {}
+      - UserApiKey: []
       parameters:
-        - name: collectionId
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [public-tracks, public-soundings, public-waypoints]
-        - name: bbox
-          in: query
-          schema:
-            type: string
-        - name: datetime
-          in: query
-          schema:
-            type: string
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 100
-        - name: vertical_datum
-          in: query
-          schema:
-            $ref: "#/components/schemas/VerticalDatum"
-        - name: qartod_qc_flag
-          in: query
-          schema:
-            type: integer
-            enum: [1, 2, 3, 4]
-        - name: iho_s44_order
-          in: query
-          schema:
-            $ref: "#/components/schemas/IhoS44Order"
-        - name: calibration_tier
-          in: query
-          schema:
-            type: string
-            enum: [UNREDUCED, TIDE_REDUCED, SV_TIDE_CALIBRATED, MOTION_COMPENSATED]
-        - name: provenance
-          in: query
-          schema:
-            type: string
-            enum: [user-track, noaa-dcdb, usgs-3dep, gebco]
-        - name: crs
-          in: query
-          description: OGC API - Features Part 2 output CRS URI (defaults to OGC:CRS84).
-          schema:
-            type: string
-        - name: bbox-crs
-          in: query
-          description: OGC API - Features Part 2 bbox CRS URI (defaults to OGC:CRS84).
-          schema:
-            type: string
-        - name: cursor
-          in: query
-          schema:
-            type: string
+      - name: collectionId
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - public-tracks
+          - public-soundings
+          - public-waypoints
+      - name: bbox
+        in: query
+        schema:
+          type: string
+      - name: datetime
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 100
+      - name: vertical_datum
+        in: query
+        schema:
+          "$ref": "#/components/schemas/VerticalDatum"
+      - name: qartod_qc_flag
+        in: query
+        schema:
+          type: integer
+          enum:
+          - 1
+          - 2
+          - 3
+          - 4
+      - name: iho_s44_order
+        in: query
+        schema:
+          "$ref": "#/components/schemas/IhoS44Order"
+      - name: calibration_tier
+        in: query
+        schema:
+          type: string
+          enum:
+          - UNREDUCED
+          - TIDE_REDUCED
+          - SV_TIDE_CALIBRATED
+          - MOTION_COMPENSATED
+      - name: provenance
+        in: query
+        schema:
+          type: string
+          enum:
+          - user-track
+          - noaa-dcdb
+          - usgs-3dep
+          - gebco
+      - name: crs
+        in: query
+        description: OGC API - Features Part 2 output CRS URI (defaults to OGC:CRS84).
+        schema:
+          type: string
+      - name: bbox-crs
+        in: query
+        description: OGC API - Features Part 2 bbox CRS URI (defaults to OGC:CRS84).
+        schema:
+          type: string
+      - name: cursor
+        in: query
+        schema:
+          type: string
       responses:
-        "200":
+        '200':
           description: OGC API - Features GeoJSON FeatureCollection.
           content:
             application/geo+json:
               schema:
                 type: object
-  /api/v1/stats/public:
+  "/api/v1/stats/public":
     get:
-      tags: [System]
+      tags:
+      - System
       summary: Honest Day-1 public coverage counters for landing page and status display
       operationId: getPublicStats
       responses:
-        "200":
+        '200':
           description: Current public platform coverage statistics.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PublicStatsResponse"
-  /api/v1/system/status:
+                "$ref": "#/components/schemas/PublicStatsResponse"
+  "/api/v1/system/status":
     get:
-      tags: [System]
+      tags:
+      - System
       summary: Public runtime feature-flag and maintenance banner status for SPA controls
       operationId: getPublicSystemStatus
       responses:
-        "200":
+        '200':
           description: Active public capability flags and optional maintenance banner.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PublicSystemStatusResponse"
-  /health/live:
+                "$ref": "#/components/schemas/PublicSystemStatusResponse"
+  "/health/live":
     get:
-      tags: [System]
+      tags:
+      - System
       summary: Process liveness probe
       operationId: getHealthLive
       responses:
-        "200":
+        '200':
           description: Process alive.
-  /health/ready:
+  "/health/ready":
     get:
-      tags: [System]
+      tags:
+      - System
       summary: Dependency readiness probe (spatial database and object storage connectivity)
       operationId: getHealthReady
       responses:
-        "200":
+        '200':
           description: Service ready to handle traffic.
-        "503":
+        '503':
           description: Dependency unavailable.
-  /tiles/manifest.json:
+  "/tiles/manifest.json":
     get:
-      tags: [Tiles]
-      summary: Public regional PMTiles shard manifest for viewport vector tile mounting (served on tiles.opendepthmap.org)
+      tags:
+      - Tiles
+      summary: Public regional PMTiles shard manifest for viewport vector tile mounting
+        (served on tiles.opendepthmap.org)
       operationId: getPublicTilesManifest
       responses:
-        "200":
-          description: Active regional PMTiles shards, OSM attribution, and mandatory disclaimer.
+        '200':
+          description: Active regional PMTiles shards, OSM attribution, and mandatory
+            disclaimer.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TileManifestResponse"
-  /tiles/private/{z}/{x}/{y}.mvt:
+                "$ref": "#/components/schemas/TileManifestResponse"
+  "/tiles/private/{z}/{x}/{y}.mvt":
     get:
-      tags: [Tiles]
+      tags:
+      - Tiles
       summary: Serve dynamic MVT vector tiles for authenticated private vault tracks
       operationId: getPrivateMvtTile
       security:
-        - SessionCookie: []
-        - OAuth2Bearer: ["read:private_vault"]
-        - UserApiKey: []
+      - SessionCookie: []
+      - UserApiKey: []
       parameters:
-        - name: z
-          in: path
-          required: true
-          schema:
-            type: integer
-            minimum: 0
-            maximum: 20
-        - name: x
-          in: path
-          required: true
-          schema:
-            type: integer
-            minimum: 0
-        - name: y
-          in: path
-          required: true
-          schema:
-            type: integer
-            minimum: 0
+      - name: z
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 20
+      - name: x
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 0
+      - name: y
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 0
       responses:
-        "200":
+        '200':
           description: Mapbox Vector Tile binary payload.
           content:
             application/vnd.mapbox-vector-tile:
               schema:
                 type: string
                 format: binary
-        "204":
+        '204':
           description: Empty tile.
-        "401":
-          $ref: "#/components/responses/ProblemDetails"
+        '401':
+          "$ref": "#/components/responses/ProblemDetails"
 components:
   securitySchemes:
     SessionCookie:
       type: apiKey
       in: cookie
       name: __Host-odm-session
-      description: "First-party SameSite=Lax HttpOnly Secure browser session cookie issued on https://opendepthmap.org. State-changing cookie requests MUST include the X-Requested-With: OpenDepthMap CSRF header."
-    OAuth2Bearer:
-      type: oauth2
-      flows:
-        authorizationCode:
-          authorizationUrl: https://opendepthmap.org/oauth2/authorize
-          tokenUrl: https://opendepthmap.org/oauth2/token
-          scopes:
-            read:public: Read public bathymetry datasets and OGC features
-            read:prefs: Read contributor preferences and device registrations
-            write:tracks: Register devices, upload raw logs, and manage own tracks
-            write:waypoints: Create and enrich dive waypoints and routes
-            read:private_vault: Read unpublished private tracks, GeoParquet, and private MVT tiles
+      description: 'First-party SameSite=Lax HttpOnly Secure browser session cookie
+        issued on https://opendepthmap.org. State-changing cookie requests MUST include
+        the X-Requested-With: OpenDepthMap CSRF header.'
     UserApiKey:
       type: apiKey
       in: header
@@ -2030,7 +1702,8 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
-      description: Vessel/Device API Key (odm_dev_ prefix) restricted strictly to write:tracks scope.
+      description: Vessel/Device API Key (odm_dev_ prefix) restricted strictly to
+        write:tracks scope.
   parameters:
     KeyId:
       name: keyId
@@ -2067,7 +1740,10 @@ components:
         application/problem+json:
           schema:
             type: object
-            required: [type, title, status]
+            required:
+            - type
+            - title
+            - status
             properties:
               type:
                 type: string
@@ -2085,81 +1761,50 @@ components:
   schemas:
     VerticalDatum:
       type: string
-      enum: [UNREDUCED, MLLW, IGLD, LOCAL_LAKE, MANUAL_DATUM]
+      enum:
+      - UNREDUCED
+      - MLLW
+      - IGLD
+      - LOCAL_LAKE
+      - MANUAL_DATUM
     IhoS44Order:
       type: string
-      enum: [SPECIAL_ORDER, ORDER_1A, ORDER_1B, ORDER_2, UNASSESSED_CSB]
+      enum:
+      - SPECIAL_ORDER
+      - ORDER_1A
+      - ORDER_1B
+      - ORDER_2
+      - UNASSESSED_CSB
     SourceFormat:
       type: string
-      description: Day-1 GA formats are GPX, GEOJSON, CSV, and NMEA_0183. Additional open formats (NMEA_2000, SUBSURFACE_SSRF, SIGNALK_DELTA) and proprietary binary formats (LOWRANCE_SL2, LOWRANCE_SL3, HUMMINBIRD_ZIP, GARMIN_RSD) roll out in Phase 1.5.
+      description: Day-1 GA open sonar and track formats.
       enum:
-        - GPX
-        - GEOJSON
-        - CSV
-        - NMEA_0183
-        - NMEA_2000
-        - SUBSURFACE_SSRF
-        - SIGNALK_DELTA
-        - LOWRANCE_SL2
-        - LOWRANCE_SL3
-        - HUMMINBIRD_ZIP
-        - GARMIN_RSD
+      - GPX
+      - GEOJSON
+      - CSV
+      - NMEA_0183
     WaterBodyType:
       type: string
-      enum: [COASTAL_TIDAL, GREAT_LAKES, INLAND_FRESHWATER]
+      enum:
+      - COASTAL_TIDAL
+      - GREAT_LAKES
+      - INLAND_FRESHWATER
     DeviceCategory:
       type: string
       enum:
-        - SURFACE_BUOY
-        - RECREATIONAL_VESSEL
-        - DIVER_COMPUTER
-        - USV_AUTONOMOUS
-        - THIRD_PARTY_PLOTTER
-    DeviceCodeResponse:
-      type: object
-      required: [device_code, user_code, verification_uri, expires_in, interval]
-      properties:
-        device_code:
-          type: string
-        user_code:
-          type: string
-          example: ODM-7K9P
-        verification_uri:
-          type: string
-          format: uri
-          example: https://opendepthmap.org/device
-        verification_uri_complete:
-          type: string
-          format: uri
-        expires_in:
-          type: integer
-          example: 600
-        interval:
-          type: integer
-          example: 5
-    DeviceTokenResponse:
-      type: object
-      required: [access_token, token_type, scope, device_id]
-      properties:
-        access_token:
-          type: string
-        token_type:
-          type: string
-          const: Bearer
-        expires_in:
-          type: integer
-        scope:
-          type: string
-          const: "write:tracks"
-        device_id:
-          type: string
-          format: uuid
-        device_api_key:
-          type: string
-          description: One-time plaintext Device API Key (odm_dev_ prefix) if provisioned during pairing.
+      - SURFACE_BUOY
+      - RECREATIONAL_VESSEL
+      - DIVER_COMPUTER
+      - USV_AUTONOMOUS
+      - THIRD_PARTY_PLOTTER
     UserApiKeySummary:
       type: object
-      required: [id, name, key_prefix, scopes, created_at]
+      required:
+      - id
+      - name
+      - key_prefix
+      - scopes
+      - created_at
       properties:
         id:
           type: string
@@ -2173,19 +1818,30 @@ components:
           type: array
           items:
             type: string
-            enum: ["read:public", "read:prefs", "write:tracks", "write:waypoints", "read:private_vault"]
+            enum:
+            - read:public
+            - read:prefs
+            - write:tracks
+            - write:waypoints
+            - read:private_vault
         expires_at:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
         revoked_at:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
         created_at:
           type: string
           format: date-time
     CreateUserApiKeyRequest:
       type: object
-      required: [name, scopes]
+      required:
+      - name
+      - scopes
       properties:
         name:
           type: string
@@ -2195,34 +1851,42 @@ components:
           minItems: 1
           items:
             type: string
-            enum: ["read:public", "read:prefs", "write:tracks", "write:waypoints", "read:private_vault"]
+            enum:
+            - read:public
+            - read:prefs
+            - write:tracks
+            - write:waypoints
+            - read:private_vault
         expires_at:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
     CreateUserApiKeyResponse:
       allOf:
-        - $ref: "#/components/schemas/UserApiKeySummary"
-        - type: object
-          required: [plaintext_key]
-          properties:
-            plaintext_key:
-              type: string
-              description: Returned once at creation time. Store securely.
+      - "$ref": "#/components/schemas/UserApiKeySummary"
+      - type: object
+        required:
+        - plaintext_key
+        properties:
+          plaintext_key:
+            type: string
+            description: Returned once at creation time. Store securely.
     DeviceProfile:
       type: object
       required:
-        - id
-        - name
-        - device_category
-        - key_prefix
-        - depth_reference
-        - draft_offset_m
-        - antenna_offset_x_m
-        - antenna_offset_y_m
-        - antenna_offset_z_m
-        - assumed_sound_speed_ms
-        - is_active
-        - created_at
+      - id
+      - name
+      - device_category
+      - key_prefix
+      - depth_reference
+      - draft_offset_m
+      - antenna_offset_x_m
+      - antenna_offset_y_m
+      - antenna_offset_z_m
+      - assumed_sound_speed_ms
+      - is_active
+      - created_at
       properties:
         id:
           type: string
@@ -2230,13 +1894,15 @@ components:
         name:
           type: string
         device_category:
-          $ref: "#/components/schemas/DeviceCategory"
+          "$ref": "#/components/schemas/DeviceCategory"
         key_prefix:
           type: string
           example: odm_dev_4c21
         depth_reference:
           type: string
-          enum: [BELOW_TRANSDUCER, BELOW_WATERLINE]
+          enum:
+          - BELOW_TRANSDUCER
+          - BELOW_WATERLINE
         draft_offset_m:
           type: number
         antenna_offset_x_m:
@@ -2246,9 +1912,13 @@ components:
         antenna_offset_z_m:
           type: number
         transducer_freq_khz:
-          type: [integer, "null"]
+          type:
+          - integer
+          - 'null'
         beamwidth_deg:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         assumed_sound_speed_ms:
           type: number
         active_calibration_effective_from:
@@ -2257,27 +1927,36 @@ components:
         is_active:
           type: boolean
         last_seen_at:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
         created_at:
           type: string
           format: date-time
     CreateDeviceRequest:
       type: object
-      required: [name, device_category]
+      required:
+      - name
+      - device_category
       properties:
         name:
           type: string
           maxLength: 100
         device_category:
-          $ref: "#/components/schemas/DeviceCategory"
+          "$ref": "#/components/schemas/DeviceCategory"
         effective_from:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
-          description: Optional start timestamp for initial calibration revision (defaults to 1970-01-01T00:00:00Z).
+          description: Optional start timestamp for initial calibration revision (defaults
+            to 1970-01-01T00:00:00Z).
         depth_reference:
           type: string
-          enum: [BELOW_TRANSDUCER, BELOW_WATERLINE]
+          enum:
+          - BELOW_TRANSDUCER
+          - BELOW_WATERLINE
           default: BELOW_TRANSDUCER
         draft_offset_m:
           type: number
@@ -2292,11 +1971,15 @@ components:
           type: number
           default: 0.0
         transducer_freq_khz:
-          type: [integer, "null"]
+          type:
+          - integer
+          - 'null'
           minimum: 10
           maximum: 2000
         beamwidth_deg:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
           minimum: 0.5
           maximum: 180.0
         assumed_sound_speed_ms:
@@ -2306,13 +1989,14 @@ components:
           maximum: 1600.0
     UpdateDeviceRequest:
       type: object
-      description: Updates device identity metadata only. Sensor rig offsets MUST be updated via effective-dated calibration revisions (/calibrations).
+      description: Updates device identity metadata only. Sensor rig offsets MUST
+        be updated via effective-dated calibration revisions (/calibrations).
       properties:
         name:
           type: string
           maxLength: 100
         device_category:
-          $ref: "#/components/schemas/DeviceCategory"
+          "$ref": "#/components/schemas/DeviceCategory"
     UpdateDeviceCalibrationRequest:
       type: object
       properties:
@@ -2320,11 +2004,15 @@ components:
           type: string
           format: date-time
         effective_to:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
         depth_reference:
           type: string
-          enum: [BELOW_TRANSDUCER, BELOW_WATERLINE]
+          enum:
+          - BELOW_TRANSDUCER
+          - BELOW_WATERLINE
         draft_offset_m:
           type: number
         antenna_offset_x_m:
@@ -2334,25 +2022,37 @@ components:
         antenna_offset_z_m:
           type: number
         transducer_freq_khz:
-          type: [integer, "null"]
+          type:
+          - integer
+          - 'null'
         beamwidth_deg:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         assumed_sound_speed_ms:
           type: number
         notes:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
     CreateDeviceResponse:
       allOf:
-        - $ref: "#/components/schemas/DeviceProfile"
-        - type: object
-          required: [plaintext_device_api_key]
-          properties:
-            plaintext_device_api_key:
-              type: string
-              description: Returned once at registration. Scoped strictly to write:tracks for this device.
+      - "$ref": "#/components/schemas/DeviceProfile"
+      - type: object
+        required:
+        - plaintext_device_api_key
+        properties:
+          plaintext_device_api_key:
+            type: string
+            description: Returned once at registration. Scoped strictly to write:tracks
+              for this device.
     UploadUrlRequest:
       type: object
-      required: [device_id, filename, byte_size, source_format]
+      required:
+      - device_id
+      - filename
+      - byte_size
+      - source_format
       properties:
         device_id:
           type: string
@@ -2365,26 +2065,39 @@ components:
           minimum: 1
           maximum: 262144000
         source_format:
-          $ref: "#/components/schemas/SourceFormat"
+          "$ref": "#/components/schemas/SourceFormat"
         title:
           type: string
           maxLength: 150
         water_body_type:
-          $ref: "#/components/schemas/WaterBodyType"
+          "$ref": "#/components/schemas/WaterBodyType"
           default: COASTAL_TIDAL
         depth_unit:
           type: string
-          enum: [METERS, FEET, FATHOMS]
+          enum:
+          - METERS
+          - FEET
+          - FATHOMS
           default: METERS
-          description: Unit of depth values in CSV uploads (converted immediately to positive-downward meters).
+          description: Unit of depth values in CSV uploads (converted immediately
+            to positive-downward meters).
         tide_station_id_override:
-          type: [string, "null"]
-          description: Optional NOAA CO-OPS station ID override (prevents wrong-basin matches across peninsulas).
+          type:
+          - string
+          - 'null'
+          description: Optional NOAA CO-OPS station ID override (prevents wrong-basin
+            matches across peninsulas).
         manual_water_level_offset_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
     UploadUrlResponse:
       type: object
-      required: [job_id, upload_url, required_headers, expires_at]
+      required:
+      - job_id
+      - upload_url
+      - required_headers
+      - expires_at
       properties:
         job_id:
           type: string
@@ -2401,76 +2114,110 @@ components:
           format: date-time
     JobStatusResponse:
       type: object
-      required: [job_id, job_type, status, progress_pct, created_at]
+      required:
+      - job_id
+      - job_type
+      - status
+      - progress_pct
+      - created_at
       properties:
         job_id:
           type: string
           format: uuid
         job_type:
           type: string
-          enum: [INGESTION, RECALIBRATE, EXPORT, OFFLINE_PACK, PUBLISH, MEDIA_PROCESSING]
+          enum:
+          - INGESTION
+          - RECALIBRATE
+          - EXPORT
+          - OFFLINE_PACK
+          - PUBLISH
         summary_label:
-          type: [string, "null"]
-          description: Human-readable label for UI history lists (e.g. export format/area or track filename).
+          type:
+          - string
+          - 'null'
+          description: Human-readable label for UI history lists (e.g. export format/area
+            or track filename).
         metadata:
-          type: [object, "null"]
+          type:
+          - object
+          - 'null'
           additionalProperties: true
         status_token:
-          type: [string, "null"]
-          description: Short-lived HMAC token returned only on anonymous public POST /api/v1/exports for polling GET /api/v1/exports/{jobId}.
+          type:
+          - string
+          - 'null'
+          description: Short-lived HMAC token returned only on anonymous public POST
+            /api/v1/exports for polling GET /api/v1/exports/{jobId}.
         status:
           type: string
           enum:
-            - PENDING_UPLOAD
-            - EXPIRED
-            - QUEUED
-            - PARSING
-            - QC_RUNNING
-            - TIDE_REDUCING
-            - PROCESSING
-            - COMPLETED
-            - FAILED
+          - PENDING_UPLOAD
+          - EXPIRED
+          - QUEUED
+          - PARSING
+          - QC_RUNNING
+          - TIDE_REDUCING
+          - PROCESSING
+          - COMPLETED
+          - FAILED
         progress_pct:
           type: integer
           minimum: 0
           maximum: 100
         track_id:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uuid
         download_url:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uri
         manifest_url:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uri
         byte_size:
-          type: [integer, "null"]
+          type:
+          - integer
+          - 'null'
         expires_at:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
         error_code:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         error_detail:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         created_at:
           type: string
           format: date-time
         completed_at:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
     SurveyTrackSummary:
       type: object
       required:
-        - id
-        - device_id
-        - title
-        - started_at
-        - ended_at
-        - sounding_count
-        - vertical_datum
-        - tide_source
-        - iho_s44_order
-        - is_public
+      - id
+      - device_id
+      - title
+      - started_at
+      - ended_at
+      - sounding_count
+      - vertical_datum
+      - tide_source
+      - iho_s44_order
+      - is_public
       properties:
         id:
           type: string
@@ -2478,7 +2225,8 @@ components:
         device_id:
           type: string
           format: uuid
-          description: True vessel/device UUID for the owner; per-track salted pseudonym UUID for non-owner/public callers.
+          description: True vessel/device UUID for the owner; per-track salted pseudonym
+            UUID for non-owner/public callers.
         title:
           type: string
         started_at:
@@ -2489,70 +2237,114 @@ components:
           format: date-time
         sounding_count:
           type: integer
+          description: Private total count for owner; post-redaction public_sounding_count
+            for non-owner callers.
         good_sounding_count:
           type: integer
+          description: Owner-only QC count; omitted for non-owner/public callers to
+            prevent inferring redacted ping counts.
         suspect_sounding_count:
           type: integer
+          description: Owner-only QC count; omitted for non-owner/public callers.
         bad_sounding_count:
           type: integer
+          description: Owner-only QC count; omitted for non-owner/public callers.
         min_depth_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         max_depth_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         vertical_datum:
-          $ref: "#/components/schemas/VerticalDatum"
+          "$ref": "#/components/schemas/VerticalDatum"
         tide_source:
           type: string
-          enum: [PENDING, NOAA_COOPS_OBSERVED, NOAA_COOPS_PREDICTED, FRESHWATER_ZERO, MANUAL_OFFSET, UNAVAILABLE]
+          enum:
+          - PENDING
+          - NOAA_COOPS_OBSERVED
+          - NOAA_COOPS_PREDICTED
+          - FRESHWATER_ZERO
+          - MANUAL_OFFSET
+          - UNAVAILABLE
         tide_station_id:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         iho_s44_order:
-          $ref: "#/components/schemas/IhoS44Order"
+          "$ref": "#/components/schemas/IhoS44Order"
         is_public:
           type: boolean
         track_modality:
           type: string
-          enum: [BATHYMETRIC_SONAR, DIVE_PROFILE]
-          description: DIVE_PROFILE tracks (.ssrf) are excluded from seafloor bathymetry, contours, and IHO B-12 CSB.
+          enum:
+          - BATHYMETRIC_SONAR
+          - DIVE_PROFILE
+          description: Always BATHYMETRIC_SONAR on Day 1; DIVE_PROFILE is schema-reserved
+            for Phase 1.5 dive-computer logs and is always excluded from seafloor
+            bathymetry, contours, and IHO B-12 CSB.
         calibration_tier:
           type: string
-          enum: [UNREDUCED, TIDE_REDUCED, SV_TIDE_CALIBRATED, MOTION_COMPENSATED]
+          enum:
+          - UNREDUCED
+          - TIDE_REDUCED
+          - SV_TIDE_CALIBRATED
+          - MOTION_COMPENSATED
         calibration_revision_id:
           type: string
           format: uuid
+          description: Owner-only field; omitted for non-owner/public callers.
         calibration_stale:
           type: boolean
-          description: Owner-only flag; true when the device calibration revision for this track's time window was edited after last calibration.
+          description: Owner-only flag; true when the device calibration revision
+            for this track's time window was edited after last calibration.
         water_body_type:
-          $ref: "#/components/schemas/WaterBodyType"
+          "$ref": "#/components/schemas/WaterBodyType"
         tide_station_id_override:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           description: Owner-only pinned NOAA CO-OPS station ID override.
         manual_water_level_offset_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
+          description: Owner-only manual water-level offset; omitted for non-owner/public
+            callers.
         water_temp_default_c:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
+          description: Owner-only fallback water temperature; omitted for non-owner/public
+            callers.
         salinity_default_psu:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
+          description: Owner-only fallback salinity; omitted for non-owner/public callers.
         bbox:
-          type: [array, "null"]
+          type:
+          - array
+          - 'null'
           minItems: 4
           maxItems: 4
           items:
             type: number
-          description: Private bbox for owner; post-redaction public_bbox (or null if fully trimmed/binned) for non-owner callers.
+          description: Private bbox for owner; post-redaction public_bbox (or null
+            if fully trimmed/redacted) for non-owner callers.
     DeviceCalibrationRevision:
       type: object
       required:
-        - id
-        - device_id
-        - effective_from
-        - draft_offset_m
-        - antenna_offset_x_m
-        - antenna_offset_y_m
-        - antenna_offset_z_m
-        - assumed_sound_speed_ms
-        - created_at
+      - id
+      - device_id
+      - effective_from
+      - draft_offset_m
+      - antenna_offset_x_m
+      - antenna_offset_y_m
+      - antenna_offset_z_m
+      - assumed_sound_speed_ms
+      - created_at
       properties:
         id:
           type: string
@@ -2564,13 +2356,18 @@ components:
           type: string
           format: date-time
         effective_to:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
         depth_reference:
           type: string
-          enum: [BELOW_TRANSDUCER, BELOW_WATERLINE]
+          enum:
+          - BELOW_TRANSDUCER
+          - BELOW_WATERLINE
           default: BELOW_TRANSDUCER
-          description: Prevents double-counting static draft offset when chartplotters already log depth below waterline.
+          description: Prevents double-counting static draft offset when chartplotters
+            already log depth below waterline.
         draft_offset_m:
           type: number
         antenna_offset_x_m:
@@ -2580,31 +2377,43 @@ components:
         antenna_offset_z_m:
           type: number
         transducer_freq_khz:
-          type: [integer, "null"]
+          type:
+          - integer
+          - 'null'
         beamwidth_deg:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         assumed_sound_speed_ms:
           type: number
         notes:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         created_at:
           type: string
           format: date-time
     CreateDeviceCalibrationRequest:
       type: object
-      required: [effective_from]
+      required:
+      - effective_from
       properties:
         effective_from:
           type: string
           format: date-time
         effective_to:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
         depth_reference:
           type: string
-          enum: [BELOW_TRANSDUCER, BELOW_WATERLINE]
+          enum:
+          - BELOW_TRANSDUCER
+          - BELOW_WATERLINE
           default: BELOW_TRANSDUCER
-          description: Prevents double-counting static draft offset when chartplotters already log depth below waterline.
+          description: Prevents double-counting static draft offset when chartplotters
+            already log depth below waterline.
         draft_offset_m:
           type: number
           default: 0.0
@@ -2618,14 +2427,20 @@ components:
           type: number
           default: 0.0
         transducer_freq_khz:
-          type: [integer, "null"]
+          type:
+          - integer
+          - 'null'
         beamwidth_deg:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         assumed_sound_speed_ms:
           type: number
           default: 1500.0
         notes:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
     PublishTrackRequest:
       type: object
       properties:
@@ -2634,32 +2449,21 @@ components:
           minimum: 0.0
           maximum: 5000.0
           default: 0.0
-          description: User-chosen distance (meters along track from start) to erase from public sharing.
+          description: User-chosen distance (meters along track from start) to erase
+            from public sharing.
         trim_end_m:
           type: number
           minimum: 0.0
           maximum: 5000.0
           default: 0.0
-          description: User-chosen distance (meters along track from end) to erase from public sharing.
-        fuzz_endpoints:
-          type: boolean
-          default: false
-          description: Opt-in H3 Resolution 8 blurring near track start, track end, and launch ramps instead of (or in addition to) trimming.
-        fuzz_radius_m:
-          type: number
-          minimum: 25.0
-          maximum: 500.0
-          default: 150.0
-          description: Base radius in meters used when fuzz_endpoints is true.
-        grid_binning:
-          type: boolean
-          default: false
-        grid_binning_resolution:
-          type: [integer, "null"]
-          enum: [9, 10, null]
+          description: User-chosen distance (meters along track from end) to erase
+            from public sharing.
     PublishTrackResponse:
       type: object
-      required: [track_id, job_id, status]
+      required:
+      - track_id
+      - job_id
+      - status
       properties:
         track_id:
           type: string
@@ -2671,7 +2475,12 @@ components:
           type: string
     RedactionZone:
       type: object
-      required: [id, label, geometry, is_active, created_at]
+      required:
+      - id
+      - label
+      - geometry
+      - is_active
+      - created_at
       properties:
         id:
           type: string
@@ -2688,7 +2497,9 @@ components:
           format: date-time
     CreateRedactionZoneRequest:
       type: object
-      required: [label, geometry]
+      required:
+      - label
+      - geometry
       properties:
         label:
           type: string
@@ -2696,118 +2507,58 @@ components:
         geometry:
           type: object
           description: GeoJSON Polygon in OGC:CRS84.
-    CreateSiteTakedownRequest:
-      type: object
-      required: [organization_name, reason_category, geometry]
-      properties:
-        organization_name:
-          type: string
-          maxLength: 150
-        reason_category:
-          type: string
-          enum: [CULTURAL_HERITAGE, HISTORIC_WRECK, TRIBAL_SITE, ECOLOGICAL_SENSITIVITY]
-        geometry:
-          type: object
-          description: GeoJSON Polygon in OGC:CRS84.
-        notes:
-          type: string
-    SiteTakedownResponse:
-      type: object
-      required: [id, organization_name, reason_category, geometry, area_sq_km, status, created_at]
-      properties:
-        id:
-          type: string
-          format: uuid
-        organization_name:
-          type: string
-        reason_category:
-          type: string
-        geometry:
-          type: object
-          description: GeoJSON Polygon in OGC:CRS84.
-        area_sq_km:
-          type: number
-        notes:
-          type: [string, "null"]
-        status:
-          type: string
-          enum: [PENDING, ACTIVE, REVOKED]
-        created_at:
-          type: string
-          format: date-time
-    DeletionAuditReceipt:
-      type: object
-      required:
-        - receipt_id
-        - entity_type
-        - entity_id
-        - storage_objects_deleted
-        - tile_regions_invalidated
-        - receipt_sha256
-        - completed_at
-      properties:
-        receipt_id:
-          type: string
-          format: uuid
-        entity_type:
-          type: string
-          enum: [TRACK, ACCOUNT, WAYPOINT]
-        entity_id:
-          type: string
-          format: uuid
-        storage_objects_deleted:
-          type: integer
-        tile_regions_invalidated:
-          type: array
-          items:
-            type: string
-        receipt_sha256:
-          type: string
-        completed_at:
-          type: string
-          format: date-time
     Waypoint:
       type: object
-      required: [id, title, geometry, is_public, created_at]
+      required:
+      - id
+      - title
+      - geometry
+      - is_public
+      - created_at
       properties:
         id:
           type: string
           format: uuid
         track_id:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uuid
         title:
           type: string
         notes:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         geometry:
           type: object
           description: GeoJSON Point with optional Z depth coordinate in OGC:CRS84.
         substrate_type:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         feature_category:
-          type: [string, "null"]
-        cmecs_substrate_code:
-          type: [string, "null"]
-        cmecs_biotic_code:
-          type: [string, "null"]
-        darwin_core_taxon:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         recorded_depth_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         water_temp_c:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         compass_heading_deg:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         is_public:
           type: boolean
-        exif_media_urls:
-          type: array
-          items:
-            type: string
-            format: uri
         recorded_at:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
         created_at:
           type: string
@@ -2816,69 +2567,92 @@ components:
       type: object
       properties:
         track_id:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uuid
         title:
           type: string
           maxLength: 150
         notes:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         geometry:
           type: object
         substrate_type:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         feature_category:
-          type: [string, "null"]
-        cmecs_substrate_code:
-          type: [string, "null"]
-        cmecs_biotic_code:
-          type: [string, "null"]
-        darwin_core_taxon:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         recorded_depth_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         water_temp_c:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         compass_heading_deg:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         is_public:
           type: boolean
     CreateWaypointRequest:
       type: object
-      required: [title, geometry]
+      required:
+      - title
+      - geometry
       properties:
         track_id:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uuid
         title:
           type: string
           maxLength: 150
         notes:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         geometry:
           type: object
         substrate_type:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         feature_category:
-          type: [string, "null"]
-        cmecs_substrate_code:
-          type: [string, "null"]
-        cmecs_biotic_code:
-          type: [string, "null"]
-        darwin_core_taxon:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         recorded_depth_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         water_temp_c:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         compass_heading_deg:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         is_public:
           type: boolean
           default: false
     PlannedRoute:
       type: object
-      required: [id, name, geometry, legs, created_at]
+      required:
+      - id
+      - name
+      - geometry
+      - legs
+      - created_at
       properties:
         id:
           type: string
@@ -2886,23 +2660,38 @@ components:
         name:
           type: string
         description:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         geometry:
           type: object
           description: GeoJSON LineString in OGC:CRS84.
         route_type:
           type: string
-          enum: [SCUBA_DIVE, KAYAK_PADDLE, BOAT_TRIP, SURVEY_TRANSECT, CUSTOM]
+          enum:
+          - SCUBA_DIVE
+          - KAYAK_PADDLE
+          - BOAT_TRIP
+          - SURVEY_TRANSECT
+          - CUSTOM
         target_depth_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         planned_speed_ms:
           type: number
-          description: Planned travel speed in meters per second used to compute leg time estimates.
+          description: Planned travel speed in meters per second used to compute leg
+            time estimates.
         legs:
           type: array
           items:
             type: object
-            required: [leg_index, distance_m, true_bearing_deg, magnetic_bearing_deg, estimated_seconds]
+            required:
+            - leg_index
+            - distance_m
+            - true_bearing_deg
+            - magnetic_bearing_deg
+            - estimated_seconds
             properties:
               leg_index:
                 type: integer
@@ -2921,26 +2710,38 @@ components:
           format: date-time
     CreatePlannedRouteRequest:
       type: object
-      required: [name, geometry]
+      required:
+      - name
+      - geometry
       properties:
         name:
           type: string
           maxLength: 100
         description:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         geometry:
           type: object
         route_type:
           type: string
-          enum: [SCUBA_DIVE, KAYAK_PADDLE, BOAT_TRIP, SURVEY_TRANSECT, CUSTOM]
+          enum:
+          - SCUBA_DIVE
+          - KAYAK_PADDLE
+          - BOAT_TRIP
+          - SURVEY_TRANSECT
+          - CUSTOM
           default: BOAT_TRIP
         target_depth_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         planned_speed_ms:
           type: number
           minimum: 0.1
           maximum: 25.0
-          description: Planned travel speed in meters per second used to compute leg time estimates.
+          description: Planned travel speed in meters per second used to compute leg
+            time estimates.
           default: 1.5
     UpdatePlannedRouteRequest:
       type: object
@@ -2949,20 +2750,31 @@ components:
           type: string
           maxLength: 100
         description:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         geometry:
           type: object
         route_type:
           type: string
-          enum: [SCUBA_DIVE, KAYAK_PADDLE, BOAT_TRIP, SURVEY_TRANSECT, CUSTOM]
+          enum:
+          - SCUBA_DIVE
+          - KAYAK_PADDLE
+          - BOAT_TRIP
+          - SURVEY_TRANSECT
+          - CUSTOM
         target_depth_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         planned_speed_ms:
           type: number
-          description: Planned travel speed in meters per second used to compute leg time estimates.
+          description: Planned travel speed in meters per second used to compute leg
+            time estimates.
     CreateOfflinePackRequest:
       type: object
-      required: [bbox]
+      required:
+      - bbox
       properties:
         bbox:
           type: array
@@ -2971,7 +2783,9 @@ components:
           items:
             type: number
         route_id:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uuid
         include_noaa_baseline:
           type: boolean
@@ -2981,90 +2795,52 @@ components:
           default: true
     CreateExportRequest:
       type: object
-      required: [format, scope]
+      required:
+      - format
+      - scope
       properties:
         format:
           type: string
-          enum: [GEOPARQUET, IHO_B12_CSV, IHO_B12_GEOJSON, CF_NETCDF, COG]
-          description: Day-1 GA formats are GEOPARQUET, IHO_B12_CSV, and IHO_B12_GEOJSON. Gridded raster formats (CF_NETCDF, COG) roll out in Phase 1.5.
+          enum:
+          - GEOPARQUET
+          - IHO_B12_CSV
+          - IHO_B12_GEOJSON
+          description: Day-1 GA open export formats.
         scope:
           type: string
-          enum: [TRACK, BBOX, RELEASE]
+          enum:
+          - TRACK
+          - BBOX
         track_id:
-          type: [string, "null"]
-          format: uuid
-        release_id:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uuid
         bbox:
-          type: [array, "null"]
+          type:
+          - array
+          - 'null'
           minItems: 4
           maxItems: 4
           items:
             type: number
-        gridding_method:
-          type: [string, "null"]
-          enum: [IDW, MEAN_BIN, MEDIAN_BIN, null]
-          default: IDW
-        grid_resolution_m:
-          type: [number, "null"]
-          minimum: 0.5
-          maximum: 500.0
-        max_search_radius_m:
-          type: [number, "null"]
-          minimum: 1.0
-          maximum: 1500.0
-          description: Maximum interpolation search radius (defaults to 3 * grid_resolution_m); cells outside stay NODATA.
-    DatasetRelease:
-      type: object
-      required: [id, title, license, bbox, algorithm_version, status, created_at]
-      properties:
-        id:
-          type: string
-          format: uuid
-        title:
-          type: string
-        doi_identifier:
-          type: [string, "null"]
-        license:
-          type: string
-          example: CC0-1.0
-        bbox:
-          type: array
-          minItems: 4
-          maxItems: 4
-          items:
-            type: number
-        gridding_method:
-          type: [string, "null"]
-        grid_resolution_m:
-          type: [number, "null"]
-        algorithm_version:
-          type: string
-        geoparquet_snapshot_uri:
-          type: [string, "null"]
-          format: uri
-        citation_text:
-          type: [string, "null"]
-        status:
-          type: string
-          enum: [DRAFT, PUBLISHED, MINTED]
-        published_at:
-          type: [string, "null"]
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
+          description: Bounding box [minLon, minLat, maxLon, maxLat] capped at <= 10,000
+            km^2 when scope=BBOX.
     ContributorProfile:
       type: object
-      required: [display_name, public_track_count, public_waypoint_count, published_tracks, created_at]
+      required:
+      - display_name
+      - public_track_count
+      - public_waypoint_count
+      - published_tracks
+      - created_at
       properties:
         display_name:
           type: string
         bio:
-          type: [string, "null"]
-        osm_linked:
-          type: boolean
+          type:
+          - string
+          - 'null'
         public_track_count:
           type: integer
         public_waypoint_count:
@@ -3072,13 +2848,19 @@ components:
         published_tracks:
           type: array
           items:
-            $ref: "#/components/schemas/SurveyTrackSummary"
+            "$ref": "#/components/schemas/SurveyTrackSummary"
         created_at:
           type: string
           format: date-time
     AuthenticatedUser:
       type: object
-      required: [id, email, display_name, roles, passkey_count, linked_providers, created_at]
+      required:
+      - id
+      - email
+      - display_name
+      - roles
+      - linked_providers
+      - created_at
       properties:
         id:
           type: string
@@ -3089,22 +2871,28 @@ components:
         display_name:
           type: string
         bio:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         roles:
           type: array
           items:
             type: string
-            enum: [Contributor, SiteSteward, Admin]
+            enum:
+            - Contributor
+            - Admin
         contributor_terms_accepted_at:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
-        passkey_count:
-          type: integer
         linked_providers:
           type: array
           items:
             type: string
-            enum: [google, github]
+            enum:
+            - google
+            - github
         created_at:
           type: string
           format: date-time
@@ -3115,18 +2903,32 @@ components:
           type: string
           maxLength: 150
         water_body_type:
-          $ref: "#/components/schemas/WaterBodyType"
+          "$ref": "#/components/schemas/WaterBodyType"
         tide_station_id_override:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         manual_water_level_offset_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         water_temp_default_c:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         salinity_default_psu:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
     TideStationOption:
       type: object
-      required: [station_id, name, distance_km, datum, lon, lat]
+      required:
+      - station_id
+      - name
+      - distance_km
+      - datum
+      - lon
+      - lat
       properties:
         station_id:
           type: string
@@ -3142,19 +2944,32 @@ components:
           type: number
     TrackProfileResponse:
       type: object
-      required: [track_id, track_modality, vertical_datum, elapsed_seconds, distance_m, raw_depth_m, reduced_depth_m, qartod_qc_flag, lon, lat]
+      required:
+      - track_id
+      - track_modality
+      - vertical_datum
+      - elapsed_seconds
+      - distance_m
+      - raw_depth_m
+      - reduced_depth_m
+      - qartod_qc_flag
+      - lon
+      - lat
       properties:
         track_id:
           type: string
           format: uuid
         track_modality:
           type: string
-          enum: [BATHYMETRIC_SONAR, DIVE_PROFILE]
+          enum:
+          - BATHYMETRIC_SONAR
+          - DIVE_PROFILE
         vertical_datum:
-          $ref: "#/components/schemas/VerticalDatum"
+          "$ref": "#/components/schemas/VerticalDatum"
         elapsed_seconds:
           type: array
-          description: Elapsed seconds from track start (primary x-axis for single-point DIVE_PROFILE tracks).
+          description: Elapsed seconds from track start (primary x-axis for single-point
+            DIVE_PROFILE tracks).
           items:
             type: number
         distance_m:
@@ -3168,11 +2983,15 @@ components:
         water_temp_c:
           type: array
           items:
-            type: [number, "null"]
+            type:
+            - number
+            - 'null'
         reduced_depth_m:
           type: array
           items:
-            type: [number, "null"]
+            type:
+            - number
+            - 'null'
         qartod_qc_flag:
           type: array
           items:
@@ -3188,15 +3007,15 @@ components:
     RouteComparisonResponse:
       type: object
       required:
-        - route_id
-        - track_id
-        - mean_xte_m
-        - max_xte_m
-        - mean_depth_deviation_m
-        - sample_count
-        - distance_m
-        - xte_m
-        - depth_deviation_m
+      - route_id
+      - track_id
+      - mean_xte_m
+      - max_xte_m
+      - mean_depth_deviation_m
+      - sample_count
+      - distance_m
+      - xte_m
+      - depth_deviation_m
       properties:
         route_id:
           type: string
@@ -3209,7 +3028,9 @@ components:
         max_xte_m:
           type: number
         mean_depth_deviation_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         sample_count:
           type: integer
         distance_m:
@@ -3223,10 +3044,18 @@ components:
         depth_deviation_m:
           type: array
           items:
-            type: [number, "null"]
+            type:
+            - number
+            - 'null'
     TileManifestResponse:
       type: object
-      required: [generated_at_utc, osm_attribution, disclaimer, basemap_pmtiles_url, reference_layers_pmtiles_url, shards]
+      required:
+      - generated_at_utc
+      - osm_attribution
+      - disclaimer
+      - basemap_pmtiles_url
+      - reference_layers_pmtiles_url
+      - shards
       properties:
         generated_at_utc:
           type: string
@@ -3238,16 +3067,23 @@ components:
         basemap_pmtiles_url:
           type: string
           format: uri
-          description: Immutable versioned URL for self-hosted OSM land/shoreline PMTiles.
+          description: Immutable versioned URL for self-hosted OSM land/shoreline
+            PMTiles.
         reference_layers_pmtiles_url:
           type: string
           format: uri
-          description: Immutable versioned URL for self-hosted OSM seamarks, boat ramps, NOAA wrecks, MPAs, and shipping lanes PMTiles.
+          description: Immutable versioned URL for self-hosted OSM seamarks, boat
+            ramps, NOAA wrecks, MPAs, and shipping lanes PMTiles.
         shards:
           type: array
           items:
             type: object
-            required: [region_key, bbox, cdn_version_tag, pmtiles_url, built_at]
+            required:
+            - region_key
+            - bbox
+            - cdn_version_tag
+            - pmtiles_url
+            - built_at
             properties:
               region_key:
                 type: string
@@ -3265,24 +3101,14 @@ components:
               built_at:
                 type: string
                 format: date-time
-    PasskeySummary:
-      type: object
-      required: [id, friendly_name, created_at]
-      properties:
-        id:
-          type: string
-          format: uuid
-        friendly_name:
-          type: string
-        last_used_at:
-          type: [string, "null"]
-          format: date-time
-        created_at:
-          type: string
-          format: date-time
     PublicStatsResponse:
       type: object
-      required: [published_track_count, published_sounding_count, mapped_linear_km, active_contributor_count, updated_at]
+      required:
+      - published_track_count
+      - published_sounding_count
+      - mapped_linear_km
+      - active_contributor_count
+      - updated_at
       properties:
         published_track_count:
           type: integer
@@ -3297,7 +3123,12 @@ components:
           format: date-time
     PublicSystemStatusResponse:
       type: object
-      required: [uploads_enabled, publishing_enabled, offline_packs_enabled, exports_enabled, read_only_mode]
+      required:
+      - uploads_enabled
+      - publishing_enabled
+      - offline_packs_enabled
+      - exports_enabled
+      - read_only_mode
       properties:
         uploads_enabled:
           type: boolean
@@ -3310,10 +3141,15 @@ components:
         read_only_mode:
           type: boolean
         banner_message:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
     UnpublishTrackResponse:
       type: object
-      required: [track_id, is_public, tile_regions_invalidated]
+      required:
+      - track_id
+      - is_public
+      - tile_regions_invalidated
       properties:
         track_id:
           type: string
@@ -3324,27 +3160,39 @@ components:
           type: array
           items:
             type: string
-        external_doi_note:
-          type: [string, "null"]
     SearchResultItem:
       type: object
-      required: [result_type, label, lon, lat]
+      required:
+      - result_type
+      - label
+      - lon
+      - lat
       properties:
         result_type:
           type: string
-          enum: [waypoint, track, tide_station, place]
+          enum:
+          - waypoint
+          - track
+          - tide_station
+          - place
         id:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         label:
           type: string
         subtitle:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         lon:
           type: number
         lat:
           type: number
         bbox:
-          type: [array, "null"]
+          type:
+          - array
+          - 'null'
           minItems: 4
           maxItems: 4
           items:
@@ -3354,17 +3202,24 @@ components:
           description: Origin label (e.g. opendepthmap, noaa-coops, osm-photon).
     SearchResponse:
       type: object
-      required: [query, items]
+      required:
+      - query
+      - items
       properties:
         query:
           type: string
         items:
           type: array
           items:
-            $ref: "#/components/schemas/SearchResultItem"
+            "$ref": "#/components/schemas/SearchResultItem"
     TrackPrivacySettingsResponse:
       type: object
-      required: [track_id, trim_start_m, trim_end_m, fuzz_endpoints, fuzz_radius_m, trimmed_sounding_count, fuzzed_sounding_count, redacted_sounding_count]
+      required:
+      - track_id
+      - trim_start_m
+      - trim_end_m
+      - trimmed_sounding_count
+      - redacted_sounding_count
       properties:
         track_id:
           type: string
@@ -3373,31 +3228,31 @@ components:
           type: number
         trim_end_m:
           type: number
-        fuzz_endpoints:
-          type: boolean
-        fuzz_radius_m:
-          type: number
-        grid_binning_resolution:
-          type: [integer, "null"]
-          enum: [9, 10, null]
         trimmed_sounding_count:
-          type: integer
-        fuzzed_sounding_count:
           type: integer
         redacted_sounding_count:
           type: integer
         applied_at:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: date-time
     MarineStationItem:
       type: object
-      required: [station_id, station_type, name, lon, lat]
+      required:
+      - station_id
+      - station_type
+      - name
+      - lon
+      - lat
       properties:
         station_id:
           type: string
         station_type:
           type: string
-          enum: [NOAA_COOPS_TIDE, NOAA_NDBC_BUOY]
+          enum:
+          - NOAA_COOPS_TIDE
+          - NOAA_NDBC_BUOY
         name:
           type: string
         lon:
@@ -3405,15 +3260,54 @@ components:
         lat:
           type: number
         datum:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
         latest_water_level_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         water_temp_c:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         wave_height_m:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         wind_speed_ms:
-          type: [number, "null"]
+          type:
+          - number
+          - 'null'
         observed_at_utc:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
+          format: date-time
+    DeletionSummary:
+      type: object
+      required:
+      - entity_type
+      - entity_id
+      - storage_objects_deleted
+      - tile_regions_invalidated
+      - deleted_at
+      properties:
+        entity_type:
+          type: string
+          enum:
+          - TRACK
+          - WAYPOINT
+          - ACCOUNT
+        entity_id:
+          type: string
+          format: uuid
+        storage_objects_deleted:
+          type: integer
+        tile_regions_invalidated:
+          type: array
+          items:
+            type: string
+        deleted_at:
+          type: string
           format: date-time

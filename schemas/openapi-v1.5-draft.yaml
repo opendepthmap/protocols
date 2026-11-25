@@ -1,0 +1,934 @@
+---
+openapi: 3.1.0
+info:
+  title: OpenDepthMap Public API - Phase 1.5 Draft Extensions
+  version: 1.5.0-draft
+  summary: Deferred Phase 1.5 external endpoints (Passkeys, RFC 8628 Device Flow,
+    Steward Takedowns, Deletion Receipts, Waypoint Media, DOI Releases) ready to merge
+    into openapi-v1.yaml post-Day-1.
+  license:
+    name: CC0-1.0
+    identifier: CC0-1.0
+servers:
+- url: https://opendepthmap.org
+  description: Production API (same-origin with web portal)
+- url: http://localhost:5080
+  description: Local developer sandbox
+security: []
+paths:
+  "/api/v1/auth/passkeys":
+    get:
+      tags:
+      - Auth
+      summary: List enrolled FIDO2 Passkeys for the authenticated user
+      operationId: listPasskeys
+      security:
+      - SessionCookie: []
+      responses:
+        '200':
+          description: Enrolled passkey metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/PasskeySummary"
+  "/api/v1/auth/passkeys/{passkeyId}":
+    patch:
+      tags:
+      - Auth
+      summary: Rename an enrolled FIDO2 Passkey
+      operationId: renamePasskey
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: passkeyId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - friendly_name
+              properties:
+                friendly_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+      responses:
+        '200':
+          description: Passkey renamed.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/PasskeySummary"
+    delete:
+      tags:
+      - Auth
+      summary: Remove an enrolled FIDO2 Passkey
+      operationId: deletePasskey
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: passkeyId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Passkey removed.
+        '409':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/auth/passkeys/register/options":
+    post:
+      tags:
+      - Auth
+      summary: Generate WebAuthn FIDO2 Passkey registration challenge options
+      operationId: beginPasskeyRegistration
+      security:
+      - SessionCookie: []
+      responses:
+        '200':
+          description: PublicKeyCredentialCreationOptions payload.
+          content:
+            application/json:
+              schema:
+                type: object
+  "/api/v1/auth/passkeys/register/verify":
+    post:
+      tags:
+      - Auth
+      summary: Verify WebAuthn attestation and persist a new FIDO2 Passkey
+      operationId: completePasskeyRegistration
+      security:
+      - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - friendly_name
+              - attestation_response
+              properties:
+                friendly_name:
+                  type: string
+                  maxLength: 100
+                attestation_response:
+                  type: object
+      responses:
+        '201':
+          description: Passkey enrolled.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - id
+                - friendly_name
+                - created_at
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  friendly_name:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+  "/api/v1/auth/passkeys/login/options":
+    post:
+      tags:
+      - Auth
+      summary: Generate WebAuthn FIDO2 Passkey sign-in or Admin step-up assertion
+        challenge
+      operationId: beginPasskeyLogin
+      security:
+      - {}
+      - SessionCookie: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                step_up:
+                  type: boolean
+                  default: false
+                  description: When true with an active SessionCookie, scopes allowCredentials
+                    to the signed-in user with userVerification required.
+      responses:
+        '200':
+          description: PublicKeyCredentialRequestOptions payload.
+          content:
+            application/json:
+              schema:
+                type: object
+  "/api/v1/auth/passkeys/login/verify":
+    post:
+      tags:
+      - Auth
+      summary: Verify WebAuthn FIDO2 Passkey assertion and establish session
+      operationId: completePasskeyLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - assertion_response
+              properties:
+                assertion_response:
+                  type: object
+      responses:
+        '200':
+          description: Passkey-verified session established.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AuthenticatedUser"
+  "/api/v1/auth/device/code":
+    post:
+      tags:
+      - Auth
+      summary: Initiate OAuth2 Device Authorization Grant (RFC 8628)
+      operationId: initiateDeviceAuth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - client_id
+              properties:
+                client_id:
+                  type: string
+                  example: opendepthmap-buoy
+                scope:
+                  type: string
+                  default: write:tracks
+      responses:
+        '200':
+          description: Device authorization challenge created.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DeviceCodeResponse"
+        '400':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/auth/device/token":
+    post:
+      tags:
+      - Auth
+      summary: Poll OAuth2 Device Authorization Grant for completion
+      operationId: pollDeviceToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - grant_type
+              - device_code
+              properties:
+                grant_type:
+                  type: string
+                  const: urn:ietf:params:oauth:grant-type:device_code
+                device_code:
+                  type: string
+                client_id:
+                  type: string
+      responses:
+        '200':
+          description: Pairing approved; returns scoped device access token and device
+            API key.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DeviceTokenResponse"
+        '400':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/auth/device/verify":
+    get:
+      tags:
+      - Auth
+      summary: Look up pending RFC 8628 device pairing challenge details by user_code
+      operationId: lookupDeviceCode
+      security:
+      - SessionCookie: []
+      parameters:
+      - name: user_code
+        in: query
+        required: true
+        schema:
+          type: string
+          example: ODM-7K9P
+      responses:
+        '200':
+          description: Pending device pairing details shown for explicit user confirmation.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - user_code
+                - client_id
+                - scope
+                - expires_at
+                - status
+                properties:
+                  user_code:
+                    type: string
+                  client_id:
+                    type: string
+                  scope:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+                  status:
+                    type: string
+                    enum:
+                    - PENDING
+                    - EXPIRED
+        '404':
+          "$ref": "#/components/responses/ProblemDetails"
+    post:
+      tags:
+      - Auth
+      summary: Approve or deny an RFC 8628 headless device pairing challenge from
+        /device
+      operationId: verifyDeviceCode
+      security:
+      - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - user_code
+              - decision
+              properties:
+                user_code:
+                  type: string
+                  example: ODM-7K9P
+                decision:
+                  type: string
+                  enum:
+                  - APPROVE
+                  - DENY
+                device_id:
+                  type:
+                  - string
+                  - 'null'
+                  format: uuid
+                  description: Optional existing device to bind; if null, registers
+                    a new device profile.
+                device_name:
+                  type:
+                  - string
+                  - 'null'
+                  maxLength: 100
+                  description: Friendly name for the newly registered device when
+                    device_id is null.
+                device_category:
+                  type:
+                  - string
+                  - 'null'
+                  enum:
+                  - SURFACE_BUOY
+                  - RECREATIONAL_VESSEL
+                  - DIVER_COMPUTER
+                  - USV_AUTONOMOUS
+                  - THIRD_PARTY_PLOTTER
+                  - null
+      responses:
+        '200':
+          description: Device authorization decision recorded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                    - APPROVED
+                    - DENIED
+  "/api/v1/privacy/takedowns":
+    get:
+      tags:
+      - Privacy
+      summary: List protected cultural site takedown submissions created by the authenticated
+        SiteSteward
+      operationId: listStewardTakedowns
+      security:
+      - SessionCookie: []
+      - OAuth2Bearer:
+        - read:prefs
+      responses:
+        '200':
+          description: Takedown requests submitted by the steward.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/SiteTakedownResponse"
+    post:
+      tags:
+      - Privacy
+      summary: Register a protected cultural site or wreck takedown polygon (SiteSteward)
+      operationId: createSiteTakedown
+      security:
+      - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CreateSiteTakedownRequest"
+      responses:
+        '201':
+          description: Protected site takedown submitted.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SiteTakedownResponse"
+        '400':
+          "$ref": "#/components/responses/ProblemDetails"
+        '403':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/privacy/deletion-receipts/{receiptId}":
+    get:
+      tags:
+      - Privacy
+      summary: Retrieve an immutable hard-deletion audit receipt
+      operationId: getDeletionReceipt
+      security:
+      - SessionCookie: []
+      - OAuth2Bearer:
+        - read:private_vault
+      parameters:
+      - name: receiptId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Deletion audit receipt.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DeletionAuditReceipt"
+  "/api/v1/waypoints/{waypointId}/media/upload-url":
+    post:
+      tags:
+      - Waypoints
+      summary: Request a single-use signed PUT URL for waypoint photo upload (<= 15
+        MiB)
+      description: 'Accepts JPEG, PNG, or WebP images up to 15 MiB. Server extracts
+        EXIF capture timestamp for dive-track correlation and strips non-timestamp
+        EXIF PII prior to public serving.
+
+'
+      operationId: requestWaypointMediaUploadUrl
+      security:
+      - SessionCookie: []
+      - OAuth2Bearer:
+        - write:waypoints
+      - UserApiKey: []
+      parameters:
+      - name: waypointId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - filename
+              - content_type
+              - byte_size
+              properties:
+                filename:
+                  type: string
+                  maxLength: 255
+                content_type:
+                  type: string
+                  enum:
+                  - image/jpeg
+                  - image/png
+                  - image/webp
+                byte_size:
+                  type: integer
+                  minimum: 1
+                  maximum: 15728640
+      responses:
+        '201':
+          description: Single-use signed PUT URL issued.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/UploadUrlResponse"
+  "/api/v1/waypoints/{waypointId}/media/{mediaId}":
+    get:
+      tags:
+      - Waypoints
+      summary: Fetch an EXIF-stripped waypoint photo (public if waypoint is published
+        and not suppressed; owner otherwise)
+      operationId: getWaypointMedia
+      security:
+      - {}
+      - SessionCookie: []
+      - OAuth2Bearer:
+        - read:private_vault
+      - UserApiKey: []
+      parameters:
+      - name: waypointId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: mediaId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Sanitized photo binary stream (EXIF GPS/serial metadata stripped).
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '302':
+          description: Short-lived signed redirect to sanitized media asset.
+        '404':
+          "$ref": "#/components/responses/ProblemDetails"
+  "/api/v1/releases":
+    get:
+      tags:
+      - Exports
+      summary: List published DOI-ready bathymetric dataset releases
+      operationId: listDatasetReleases
+      security: []
+      responses:
+        '200':
+          description: Published dataset releases.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/DatasetRelease"
+components:
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: __Host-odm-session
+      description: 'First-party SameSite=Lax HttpOnly Secure browser session cookie
+        issued on https://opendepthmap.org. State-changing cookie requests MUST include
+        the X-Requested-With: OpenDepthMap CSRF header.'
+    OAuth2Bearer:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://opendepthmap.org/oauth2/authorize
+          tokenUrl: https://opendepthmap.org/oauth2/token
+          scopes:
+            read:public: Read public bathymetry datasets and OGC features
+            read:prefs: Read contributor preferences and device registrations
+            write:tracks: Register devices, upload raw logs, and manage own tracks
+            write:waypoints: Create and enrich dive waypoints and routes
+            read:private_vault: Read unpublished private tracks, GeoParquet, and private
+              MVT tiles
+    UserApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Personal User API Key (odm_usr_ prefix) with configurable scopes.
+    DeviceApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Vessel/Device API Key (odm_dev_ prefix) restricted strictly to
+        write:tracks scope.
+  parameters: {}
+  responses:
+    ProblemDetails:
+      description: RFC 9457 Problem Details error response.
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            required:
+            - type
+            - title
+            - status
+            properties:
+              type:
+                type: string
+                format: uri
+              title:
+                type: string
+              status:
+                type: integer
+              detail:
+                type: string
+              error_code:
+                type: string
+              trace_id:
+                type: string
+  schemas:
+    PasskeySummary:
+      type: object
+      required:
+      - id
+      - friendly_name
+      - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        friendly_name:
+          type: string
+        last_used_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    AuthenticatedUser:
+      type: object
+      required:
+      - id
+      - email
+      - display_name
+      - roles
+      - passkey_count
+      - linked_providers
+      - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        bio:
+          type:
+          - string
+          - 'null'
+        roles:
+          type: array
+          items:
+            type: string
+            enum:
+            - Contributor
+            - SiteSteward
+            - Admin
+        contributor_terms_accepted_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        passkey_count:
+          type: integer
+        linked_providers:
+          type: array
+          items:
+            type: string
+            enum:
+            - google
+            - github
+            - apple
+            - osm
+        created_at:
+          type: string
+          format: date-time
+    DeviceCodeResponse:
+      type: object
+      required:
+      - device_code
+      - user_code
+      - verification_uri
+      - expires_in
+      - interval
+      properties:
+        device_code:
+          type: string
+        user_code:
+          type: string
+          example: ODM-7K9P
+        verification_uri:
+          type: string
+          format: uri
+          example: https://opendepthmap.org/device
+        verification_uri_complete:
+          type: string
+          format: uri
+        expires_in:
+          type: integer
+          example: 600
+        interval:
+          type: integer
+          example: 5
+    DeviceTokenResponse:
+      type: object
+      required:
+      - access_token
+      - token_type
+      - scope
+      - device_id
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          const: Bearer
+        expires_in:
+          type: integer
+        scope:
+          type: string
+          const: write:tracks
+        device_id:
+          type: string
+          format: uuid
+        device_api_key:
+          type: string
+          description: One-time plaintext Device API Key (odm_dev_ prefix) if provisioned
+            during pairing.
+    SiteTakedownResponse:
+      type: object
+      required:
+      - id
+      - organization_name
+      - reason_category
+      - geometry
+      - area_sq_km
+      - status
+      - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        organization_name:
+          type: string
+        reason_category:
+          type: string
+        geometry:
+          type: object
+          description: GeoJSON Polygon in OGC:CRS84.
+        area_sq_km:
+          type: number
+        notes:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+          enum:
+          - PENDING
+          - ACTIVE
+          - REVOKED
+        created_at:
+          type: string
+          format: date-time
+    CreateSiteTakedownRequest:
+      type: object
+      required:
+      - organization_name
+      - reason_category
+      - geometry
+      properties:
+        organization_name:
+          type: string
+          maxLength: 150
+        reason_category:
+          type: string
+          enum:
+          - CULTURAL_HERITAGE
+          - HISTORIC_WRECK
+          - TRIBAL_SITE
+          - ECOLOGICAL_SENSITIVITY
+        geometry:
+          type: object
+          description: GeoJSON Polygon in OGC:CRS84.
+        notes:
+          type: string
+    DeletionAuditReceipt:
+      type: object
+      required:
+      - receipt_id
+      - entity_type
+      - entity_id
+      - storage_objects_deleted
+      - tile_regions_invalidated
+      - receipt_sha256
+      - deleted_at
+      properties:
+        receipt_id:
+          type: string
+          format: uuid
+        entity_type:
+          type: string
+          enum:
+          - TRACK
+          - ACCOUNT
+          - WAYPOINT
+        entity_id:
+          type: string
+          format: uuid
+        storage_objects_deleted:
+          type: integer
+        tile_regions_invalidated:
+          type: array
+          items:
+            type: string
+        receipt_sha256:
+          type: string
+        deleted_at:
+          type: string
+          format: date-time
+    UploadUrlResponse:
+      type: object
+      required:
+      - job_id
+      - upload_url
+      - required_headers
+      - expires_at
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        upload_url:
+          type: string
+          format: uri
+        required_headers:
+          type: object
+          additionalProperties:
+            type: string
+        expires_at:
+          type: string
+          format: date-time
+    DatasetRelease:
+      type: object
+      required:
+      - id
+      - title
+      - license
+      - bbox
+      - algorithm_version
+      - status
+      - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        doi_identifier:
+          type:
+          - string
+          - 'null'
+        license:
+          type: string
+          example: CC0-1.0
+        bbox:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            type: number
+        gridding_method:
+          type:
+          - string
+          - 'null'
+        grid_resolution_m:
+          type:
+          - number
+          - 'null'
+        algorithm_version:
+          type: string
+        geoparquet_snapshot_uri:
+          type:
+          - string
+          - 'null'
+          format: uri
+        citation_text:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+          enum:
+          - DRAFT
+          - PUBLISHED
+          - MINTED
+        published_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        created_at:
+          type: string
+          format: date-time

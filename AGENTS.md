@@ -15,3 +15,9 @@
 - Machine-readable JSON/OpenAPI/IHO B-12 schemas (`schemas/`)
 - Sanitized synthetic sample sonar/GPX fixtures (`docs/samples/`)
 - Future public Python SDK / CLI tooling (MIT)
+
+## Automatic Milestone Gate (Scope, Security & Clarity)
+Before finalizing any schema, endpoint, or spec change:
+1. **YAGNI / Scope Discipline:** Keep `schemas/openapi-v1.yaml` and `docs/spec.md` strictly scoped to active Day-1 GA contracts; place deferred formats or endpoints in `schemas/openapi-v1.5-draft.yaml` and `docs/phase-1.5-roadmap.md`.
+2. **Security & Privacy Check:** Verify all endpoints specify exact auth/scope schemes, never expose private coordinates or raw device identifiers on public routes, and contain zero internal infrastructure details.
+3. **Validation & Push Hygiene:** Validate all YAML/JSON `$ref`s and schemas before declaring done, and always ask the user explicitly before running `git push`.
