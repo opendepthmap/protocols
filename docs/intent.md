@@ -57,7 +57,7 @@ Every client, service, and dataset conforming to OpenDepthMap protocols MUST uph
    - All contributor uploads default to private (`is_public = false`).
    - Prior to public exposure, contributors control entry/exit privacy via interactive start/end trim sliders (erasing any chosen distance from the start or end of a track so short shore dives are never unintentionally destroyed) and custom spatial redaction polygons.
 5. **Strict Credential Separation:** Personal User API Keys (`read:public`, `read:private_vault`, `write:tracks`, `write:waypoints`) are strictly separated from Device/Vessel API Keys (`write:tracks` only) so a lost or compromised field sensor cannot read private user vaults.
-6. **Transparent Data Provenance & Attribution:** External public baselines (such as NOAA DCDB / IHO CSB, GEBCO, USGS 3DEP) are tagged distinctly from user-submitted tracks. Base map land/shoreline vectors derived from OpenStreetMap strictly comply with ODbL 1.0 attribution (*"Map data © OpenStreetMap contributors"*) and remain in clean layers separate from CC0-1.0 bathymetric soundings.
+6. **Transparent Data Provenance & Attribution:** External public baselines (such as NOAA BlueTopo, NOAA DCDB / IHO CSB, GEBCO, USGS 3DEP, and public state inland lake bathymetry datasets like NH GRANIT / NHDES) are tagged distinctly from user-submitted tracks. Base map land/shoreline vectors derived from OpenStreetMap strictly comply with ODbL 1.0 attribution (*"Map data © OpenStreetMap contributors"*) and remain in clean layers separate from CC0-1.0 bathymetric soundings.
 
 ---
 
