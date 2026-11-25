@@ -10,14 +10,19 @@
 
 ## 1. Why OpenDepthMap Exists
 
-OpenDepthMap is an open-source, vendor-neutral bathymetric mapping ecosystem and subsea GIS data standard designed to solve six persistent gaps in underwater mapping:
+OpenDepthMap is an open-source, vendor-neutral bathymetric mapping ecosystem and subsea GIS data standard organized around three core pillars that address six persistent gaps in underwater mapping:
 
-1. **Financial and Navigational Barriers:** Commercial hydrographic survey rigs and Ultra-Short Baseline (USBL) positioning systems cost tens of thousands of dollars, placing precise bathymetric logging out of reach for individual divers, citizen scientists, and local search-and-recovery groups.
-2. **Closing the Nearshore "White Ribbon" Survey Gap:** Official hydrographic survey ships draw too much draft to safely survey shallow rocky coastlines, intertidal reefs, and kelp beds (under 10 to 15 meters depth), while satellite-derived bathymetry (SDB) fails in turbid, dark, or optically complex water.
-3. **Temporal Change Detection After Storms and Dredging:** Mobile sandbars, river mouths, and harbor approaches shift rapidly after storms and dredging operations. Open, repeatable survey logs with consistent datum reduction enable localized bathymetric differencing over time.
-4. **Rescuing Trapped Sonar Data from Proprietary Silos:** Recreational boaters and anglers generate vast quantities of single-beam sonar logs locked inside closed vendor formats. OpenDepthMap launches with core open, vendor-neutral formats (`GPX`, `GEOJSON`, `CSV`, `NMEA_0183`) and exports cleanly into open GIS standards (`GeoParquet 1.1`, `OGC API - Features`, `IHO B-12 CSB`, `PMTiles`), with extended/proprietary parsers and gridded raster exports documented in [phase-1.5-roadmap.md](phase-1.5-roadmap.md).
-5. **Uncharted Inland Lakes, Quarries, and Reservoirs:** Millions of small inland water bodies lack official bathymetric charts. Community mapping with explicit freshwater sound-velocity and datum handling unlocks usable depth references for local divers, limnologists, and watershed managers.
-6. **Subsea Ecological Ground-Truthing and Hazard Mapping:** Raw depth soundings gain lasting scientific and practical value when paired with diver-verified waypoints and substrate classifications (expanding to CMECS/Darwin Core taxonomy and EXIF-stripped geo-referenced media in Phase 1.5).
+### Pillar 1: Nearshore White-Ribbon Bathymetry
+1. **Closing the Nearshore "White Ribbon" Survey Gap:** Official hydrographic survey ships draw too much draft to safely survey shallow rocky coastlines, intertidal reefs, and kelp beds (under 10 to 15 meters depth), while satellite-derived bathymetry (SDB) fails in turbid, dark, or optically complex water. Surface micro-buoys and diver-towed sensors naturally fill this hydrographic gap.
+2. **Temporal Change Detection After Storms and Dredging:** Mobile sandbars, river mouths, and harbor approaches shift rapidly after storms and dredging operations. Open, repeatable survey logs with consistent datum reduction enable localized bathymetric differencing over time.
+3. **Uncharted Inland Lakes, Quarries, and Reservoirs:** Millions of small inland water bodies lack official bathymetric charts. Community mapping with explicit freshwater sound-velocity and datum handling unlocks usable depth references for local divers, limnologists, and watershed managers.
+
+### Pillar 2: Vendor-Neutral Sonar Ingestion
+4. **Rescuing Trapped Sonar Data from Proprietary Silos:** Recreational boaters and anglers generate vast quantities of single-beam sonar logs locked inside closed vendor formats. OpenDepthMap launches with core open, vendor-neutral formats (`GPX`, `GEOJSON`, `CSV`, `NMEA_0183`), explicit vertical datum labeling, and privacy-by-default controls, exporting cleanly into open GIS standards (`GeoParquet 1.1`, `OGC API - Features`, `IHO B-12 CSB`, `PMTiles`), with extended/proprietary parsers and gridded raster exports documented in [phase-1.5-roadmap.md](phase-1.5-roadmap.md).
+
+### Pillar 3: Low-Cost Subsea Situational Awareness
+5. **Financial and Navigational Barriers:** Commercial hydrographic survey rigs and Ultra-Short Baseline (USBL) positioning systems cost tens of thousands of dollars, placing precise bathymetric logging out of reach for individual divers, citizen scientists, and local search-and-recovery groups. Analog magnetic compasses are also disrupted by cross-currents, wrecks, reinforced concrete, steel cylinders, and low visibility; OpenDepthMap brings surface-tethered positioning and bathymetric logging within standard DIY maker budgets.
+6. **Subsea Ecological Ground-Truthing and Hazard Mapping:** Raw depth soundings gain lasting scientific and practical value when paired with diver-verified waypoints, substrate classifications (sand, silt, bedrock, boulder), and hazard markers (expanding to CMECS/Darwin Core taxonomy and EXIF-stripped geo-referenced media in Phase 1.5).
 
 ---
 
