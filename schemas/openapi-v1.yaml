@@ -395,9 +395,7 @@ paths:
       - Devices
       summary: Soft-deactivate a device and immediately revoke its Device API Key
       description: 'Revokes the device credential and prevents future uploads while
-        preserving historical survey track provenance and calibration snapshots.
-
-'
+        preserving historical survey track provenance and calibration snapshots.'
       operationId: deactivateDevice
       security:
       - SessionCookie: []
@@ -455,9 +453,7 @@ paths:
       summary: Add a new effective-dated sensor rig calibration revision
       description: 'Records a time-bounded sensor rig offset revision without mutating
         existing tracks. Automatically closes an open-ended prior revision when effective_from
-        is later; returns 409 Conflict if the range overlaps an existing closed revision.
-
-'
+        is later; returns 409 Conflict if the range overlaps an existing closed revision.'
       operationId: createDeviceCalibration
       security:
       - SessionCookie: []
@@ -486,9 +482,7 @@ paths:
       summary: Correct an existing effective-dated sensor rig calibration revision
       description: 'Updates a historical or active calibration revision without silently
         mutating existing tracks. Tracks captured within the revision window are marked
-        calibration_stale=true so owners can explicitly trigger POST /api/v1/tracks/{trackId}/recalibrate.
-
-'
+        calibration_stale=true so owners can explicitly trigger POST /api/v1/tracks/{trackId}/recalibrate.'
       operationId: updateDeviceCalibration
       security:
       - SessionCookie: []
@@ -523,9 +517,7 @@ paths:
       summary: Request a 15-minute single-use signed direct PUT URL for raw sonar/track
         upload
       description: 'When authenticated with a DeviceApiKey (odm_dev_), request.device_id
-        MUST match the device bound to that key; mismatches return 403 Forbidden.
-
-'
+        MUST match the device bound to that key; mismatches return 403 Forbidden.'
       operationId: requestTrackUploadUrl
       security:
       - SessionCookie: []
@@ -610,9 +602,7 @@ paths:
       description: 'When authenticated with a DeviceApiKey (odm_dev_), access is strictly
         restricted to INGESTION jobs whose device_id matches the key''s bound device
         (returns 404 otherwise). Anonymous public export callers should poll GET /api/v1/exports/{jobId}
-        using the returned status_token.
-
-'
+        using the returned status_token.'
       operationId: getJobStatus
       security:
       - SessionCookie: []
@@ -729,9 +719,7 @@ paths:
         or trim_end_m > 0. Owner-only raw QC counts (good/suspect/bad_sounding_count),
         calibration_revision_id, calibration_stale, and manual offset/default fields
         are omitted to prevent privacy side-channel inference (DIVE_PROFILE and unpublished
-        tracks return 404).
-
-'
+        tracks return 404).'
       operationId: getTrack
       security:
       - {}
@@ -755,9 +743,7 @@ paths:
         offset
       description: 'Persists metadata updates immediately. If water_body_type, tide_station_id_override,
         manual_water_level_offset_m, or default temp/salinity changed, marks calibration_stale=true
-        so the owner can trigger POST /api/v1/tracks/{trackId}/recalibrate.
-
-'
+        so the owner can trigger POST /api/v1/tracks/{trackId}/recalibrate.'
       operationId: updateTrack
       security:
       - SessionCookie: []
@@ -852,9 +838,7 @@ paths:
       summary: Fetch decimated distance-vs-depth profile series for depth chart inspection
       description: 'For non-owner or anonymous callers, reads strictly from the post-redaction,
         post-trim public sounding archive (never raw or unredacted private soundings)
-        and returns 404 for unpublished or DIVE_PROFILE tracks.
-
-'
+        and returns 404 for unpublished or DIVE_PROFILE tracks.'
       operationId: getTrackProfile
       security:
       - {}
@@ -919,9 +903,7 @@ paths:
         owner vault
       description: 'Sets is_public=false, clears public_geom and public_bbox, deletes
         public GeoParquet partitions, and triggers an immediate priority regional
-        PMTiles shard rebuild plus CDN purge while preserving the owner private track.
-
-'
+        PMTiles shard rebuild plus CDN purge while preserving the owner private track.'
       operationId: unpublishTrack
       security:
       - SessionCookie: []
@@ -945,9 +927,7 @@ paths:
       description: 'Combines fast full-text and spatial search over published waypoints,
         published bathymetric tracks, and NOAA tide stations with server-cached OpenStreetMap
         place geocoding for harbors, bays, coves, and lakes. Direct lat/lon coordinate
-        parsing is performed client-side without hitting this endpoint.
-
-'
+        parsing is performed client-side without hitting this endpoint.'
       operationId: searchMap
       security: []
       parameters:
