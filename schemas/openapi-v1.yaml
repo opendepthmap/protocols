@@ -401,7 +401,6 @@ paths:
       operationId: deactivateDevice
       security:
       - SessionCookie: []
-      - UserApiKey: []
       parameters:
       - "$ref": "#/components/parameters/DeviceId"
       responses:
