@@ -1,0 +1,52 @@
+name: Protocols Contract Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-contracts:
+    name: Validate OpenAPI, JSON Schemas & Style Hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout protocols
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Lint Day-1 OpenAPI contract
+        run: npx --yes @redocly/cli lint schemas/openapi-v1.yaml
+
+      - name: Validate JSON schemas and enforce zero em dashes
+        run: |
+          python3 - <<'PY'
+          import glob
+          import json
+          import sys
+
+          for path in sorted(glob.glob("schemas/*.json")):
+              with open(path, "r", encoding="utf-8") as fh:
+                  json.load(fh)
+              print(f"Valid JSON: {path}")
+
+          em_dash_hits = []
+          for pattern in ("*.md", "docs/**/*.md", "schemas/*.yaml", "schemas/*.json"):
+              for path in sorted(glob.glob(pattern, recursive=True)):
+                  with open(path, "r", encoding="utf-8") as fh:
+                      for idx, line in enumerate(fh, start=1):
+                          if "\u2014" in line:
+                              em_dash_hits.append(f"{path}:{idx}")
+
+          if em_dash_hits:
+              print("Em dashes (U+2014) found:\n  " + "\n  ".join(em_dash_hits), file=sys.stderr)
+              sys.exit(1)
+          print("Zero em dashes verified.")
+          PY
