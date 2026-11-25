@@ -32,7 +32,7 @@ tags:
   - name: Routing
     description: Planned water routes, survey transects, and offline PMTiles chart packs.
   - name: Exports
-    description: GeoParquet, IHO B-12 CSB, CF-NetCDF, COG exports and DOI dataset releases.
+    description: GeoParquet 1.1 and IHO B-12 CSB exports (Day-1 GA), gridded CF-NetCDF/COG (Phase 1.5), and DOI dataset releases.
   - name: OGC
     description: OGC API - Features Part 1 and Part 2 endpoints.
   - name: Tiles
@@ -1711,7 +1711,7 @@ paths:
   /api/v1/exports:
     post:
       tags: [Exports]
-      summary: Queue a GeoParquet, IHO B-12 CSB, CF-NetCDF, or COG export job
+      summary: Queue a GeoParquet 1.1 or IHO B-12 CSB export job (CF-NetCDF and COG roll out in Phase 1.5)
       operationId: createExportJob
       security:
         - {}
@@ -2091,7 +2091,7 @@ components:
       enum: [SPECIAL_ORDER, ORDER_1A, ORDER_1B, ORDER_2, UNASSESSED_CSB]
     SourceFormat:
       type: string
-      description: Day-1 GA formats are GPX, GEOJSON, CSV, NMEA_0183, NMEA_2000, SUBSURFACE_SSRF, SIGNALK_DELTA. Proprietary binary formats (LOWRANCE_SL2, LOWRANCE_SL3, HUMMINBIRD_ZIP, GARMIN_RSD) roll out in Phase 1.5.
+      description: Day-1 GA formats are GPX, GEOJSON, CSV, and NMEA_0183. Additional open formats (NMEA_2000, SUBSURFACE_SSRF, SIGNALK_DELTA) and proprietary binary formats (LOWRANCE_SL2, LOWRANCE_SL3, HUMMINBIRD_ZIP, GARMIN_RSD) roll out in Phase 1.5.
       enum:
         - GPX
         - GEOJSON
@@ -2986,6 +2986,7 @@ components:
         format:
           type: string
           enum: [GEOPARQUET, IHO_B12_CSV, IHO_B12_GEOJSON, CF_NETCDF, COG]
+          description: Day-1 GA formats are GEOPARQUET, IHO_B12_CSV, and IHO_B12_GEOJSON. Gridded raster formats (CF_NETCDF, COG) roll out in Phase 1.5.
         scope:
           type: string
           enum: [TRACK, BBOX, RELEASE]

@@ -15,7 +15,7 @@ OpenDepthMap is an open-source, vendor-neutral bathymetric mapping ecosystem and
 1. **Financial and Navigational Barriers:** Commercial hydrographic survey rigs and Ultra-Short Baseline (USBL) positioning systems cost tens of thousands of dollars, placing precise bathymetric logging out of reach for individual divers, citizen scientists, and local search-and-recovery groups.
 2. **Closing the Nearshore "White Ribbon" Survey Gap:** Official hydrographic survey ships draw too much draft to safely survey shallow rocky coastlines, intertidal reefs, and kelp beds (under 10 to 15 meters depth), while satellite-derived bathymetry (SDB) fails in turbid, dark, or optically complex water.
 3. **Temporal Change Detection After Storms and Dredging:** Mobile sandbars, river mouths, and harbor approaches shift rapidly after storms and dredging operations. Open, repeatable survey logs with consistent datum reduction enable localized bathymetric differencing over time.
-4. **Rescuing Trapped Sonar Data from Proprietary Silos:** Recreational boaters and anglers generate vast quantities of single-beam sonar logs locked inside closed vendor formats (Lowrance `.sl2`/`.sl3`, Garmin `.rsd`, Humminbird `.dat`/`.son`). OpenDepthMap launches on Day 1 with open, vendor-neutral formats (GPX, GeoJSON, CSV, NMEA 0183/2000, Subsurface `.ssrf`, Signal K) and adds proprietary binary parsers in Phase 1.5, exporting into open GIS standards (GeoParquet, OGC API - Features, IHO B-12 CSB, CF-NetCDF, COG, PMTiles).
+4. **Rescuing Trapped Sonar Data from Proprietary Silos:** Recreational boaters and anglers generate vast quantities of single-beam sonar logs locked inside closed vendor formats (Lowrance `.sl2`/`.sl3`, Garmin `.rsd`, Humminbird `.dat`/`.son`). OpenDepthMap launches on Day 1 with the core open, vendor-neutral formats (GPX, GeoJSON, CSV, NMEA 0183) and adds additional marine/dive formats (NMEA 2000, Signal K, Subsurface `.ssrf`) plus proprietary binary parsers in Phase 1.5, exporting into open GIS standards (GeoParquet, OGC API - Features, IHO B-12 CSB, PMTiles on Day 1; gridded CF-NetCDF and COG in Phase 1.5).
 5. **Uncharted Inland Lakes, Quarries, and Reservoirs:** Millions of small inland water bodies lack official bathymetric charts. Community mapping with explicit freshwater sound-velocity and datum handling unlocks usable depth references for local divers, limnologists, and watershed managers.
 6. **Subsea Ecological Ground-Truthing and Hazard Mapping:** Raw depth soundings gain lasting scientific and practical value when paired with diver-verified substrate classifications, ecological tags (CMECS and Darwin Core), and geo-referenced media.
 
@@ -28,7 +28,7 @@ OpenDepthMap is an open-source, vendor-neutral bathymetric mapping ecosystem and
 - **Phase 1 Outcome:** Zero-login dark-water map exploration, private-by-default vault, user-controlled entry/exit trim sliders, interactive polygon redaction, optional shoreline H3-R8 endpoint blurring before public sharing, universal water route & survey transect planning, and downloadable offline `.pmtiles` regional chart packs.
 
 ### Persona 2: The Coastal Boater, Angler & Small-Craft Operator
-- **Needs:** Explicit vertical datum labeling (never conflating unreduced transducer depth with tide-reduced MLLW), shoal and channel depth clarity, and frictionless upload of chartplotter sonar logs (GPX, NMEA 0183/2000, CSV on Day 1; Lowrance `.sl2`/`.sl3`, Humminbird `.zip`, Garmin `.rsd` in Phase 1.5).
+- **Needs:** Explicit vertical datum labeling (never conflating unreduced transducer depth with tide-reduced MLLW), shoal and channel depth clarity, and frictionless upload of chartplotter sonar logs (GPX, GeoJSON, CSV, NMEA 0183 on Day 1; NMEA 2000, Signal K, Subsurface `.ssrf`, Lowrance `.sl2`/`.sl3`, Humminbird `.zip`, Garmin `.rsd` in Phase 1.5).
 - **Phase 1 Outcome:** Direct upload of multi-vendor sonar logs paired with one-time vessel/transducer offset registration, automated NOAA CO-OPS MLLW tide reduction for US coastal waters, and real-time comparison between raw crowd soundings and tide-reduced MLLW depths.
 
 ### Persona 3: The DIY Hardware Maker & Embedded Tinkerer
@@ -37,7 +37,7 @@ OpenDepthMap is an open-source, vendor-neutral bathymetric mapping ecosystem and
 
 ### Persona 4: The GIS / Spatial Data Engineer & Marine Scientist
 - **Needs:** Strict CRS/EPSG compliance (`OGC:CRS84` / `EPSG:4326`), transparent QARTOD QC flags, UNESCO sound-velocity calibration, 95% confidence Total Vertical/Horizontal Uncertainty (TVU/THU) mapped to IHO S-44 Survey Orders, CMECS/Darwin Core ecological metadata, and reproducible open-format exports.
-- **Phase 1 Outcome:** Direct GeoParquet 1.1 archive access, OGC API - Features endpoints, IHO B-12 CSB public domain datasets, CF-1.10 NetCDF and Cloud-Optimized GeoTIFF (COG) gridded exports, and DOI-ready dataset releases with documented gridding provenance.
+- **Phase 1 Outcome:** Direct GeoParquet 1.1 archive access, OGC API - Features endpoints, IHO B-12 CSB public domain datasets, and DOI-ready dataset releases with documented provenance (with gridded CF-1.10 NetCDF and Cloud-Optimized GeoTIFF [COG] exports added in Phase 1.5).
 
 ---
 
@@ -64,7 +64,7 @@ Every client, service, and dataset conforming to OpenDepthMap protocols MUST uph
 - Public external REST API, OAuth2/OIDC & Device Flow, Personal vs. Device API Key semantics, and OGC API - Features contracts.
 - Two-step direct upload contract and asynchronous ingestion job lifecycle.
 - GeoParquet 1.1 full-resolution sounding schema, QARTOD QC flags, IHO S-44 survey orders, and CMECS/Darwin Core waypoint metadata schema.
-- Open export contracts: IHO B-12 CSB (CSV/GeoJSON), CF-NetCDF, Cloud-Optimized GeoTIFF (COG), and `.pmtiles` vector tile layer definitions.
+- Open export contracts: GeoParquet 1.1, IHO B-12 CSB (CSV/GeoJSON), and `.pmtiles` vector tile layer definitions on Day 1 (with CF-NetCDF and Cloud-Optimized GeoTIFF [COG] schemas reserved for Phase 1.5).
 - Sanitized synthetic sample datasets (`docs/samples/`) for external developer and GIS testing.
 
 ### Deferred to Phase 2 & Phase 3

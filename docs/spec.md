@@ -94,9 +94,9 @@ At ingestion time, the server resolves the calibration revision active at the tr
 | `GEOJSON` | `.geojson`, `.json` | **Day-1 GA** | Open JSON (RFC 7946 `FeatureCollection`, `LineString`, or `Point`; `feature_type=waypoint` extracted) |
 | `CSV` | `.csv` | **Day-1 GA** | Open tabular requiring `lon`, `lat`, `recorded_at_utc`, and exactly one depth column (`depth_m`, `depth_ft`, `depth_fathoms`, or `depth`); unit-header mismatch rejected (`UNIT_HEADER_MISMATCH`) |
 | `NMEA_0183` | `.nmea`, `.txt`, `.log` | **Day-1 GA** | Text marine stream; strict checksum validation (`GGA`, `RMC`, `DBT`, `DPT`, `MTW`); `$SDDPT` takes precedence over `$SDDBT` |
-| `NMEA_2000` | `.n2k`, `.can`, `.log` | **Day-1 GA** | CANboat/Actisense CSV PGN logs and SocketCAN `candump` logs carrying PGNs `128267` (Water Depth), `129025` (Position Rapid), `129029` (GNSS Position Data), and `130310` (Environmental Parameters) |
-| `SUBSURFACE_SSRF` | `.ssrf`, `.xml` | **Day-1 GA** | Open dive log XML (`track_modality=DIVE_PROFILE`, excluded from seafloor bathymetry); DTD disabled, max 500 MiB expanded |
-| `SIGNALK_DELTA` | `.json`, `.ndjson` | **Day-1 GA** | Batched Signal K delta JSON/NDJSON log files uploaded via `/api/v1/tracks/upload-url` |
+| `NMEA_2000` | `.n2k`, `.can`, `.log` | Phase 1.5 | CANboat/Actisense CSV PGN logs and SocketCAN `candump` logs carrying PGNs `128267` (Water Depth), `129025` (Position Rapid), `129029` (GNSS Position Data), and `130310` (Environmental Parameters) |
+| `SUBSURFACE_SSRF` | `.ssrf`, `.xml` | Phase 1.5 | Open dive log XML (`track_modality=DIVE_PROFILE`, excluded from seafloor bathymetry); DTD disabled, max 500 MiB expanded |
+| `SIGNALK_DELTA` | `.json`, `.ndjson` | Phase 1.5 | Batched Signal K delta JSON/NDJSON log files uploaded via `/api/v1/tracks/upload-url` |
 | `LOWRANCE_SL2` | `.sl2` | Phase 1.5 | Proprietary binary sonar; magic-byte verified |
 | `LOWRANCE_SL3` | `.sl3` | Phase 1.5 | Proprietary binary sonar; magic-byte verified |
 | `HUMMINBIRD_ZIP` | `.zip` (`.dat` + `.son`) | Phase 1.5 | Proprietary sonar bundle pairing `.dat` UTC header and `.son` frames; max 500 MiB expanded |
@@ -125,7 +125,7 @@ Full request/response payloads, status codes, and RFC 9457 error objects are spe
 | Waypoints | `GET/POST /api/v1/waypoints`, `PATCH/DELETE /api/v1/waypoints/{id}`, `POST /api/v1/waypoints/{id}/media/upload-url`, `GET /api/v1/waypoints/{id}/media/{mediaId}` | Public (if `is_public`) or Owner (`write:waypoints`) | Manage waypoints (CMECS/Darwin Core) and EXIF-stripped photo uploads (`<= 15 MiB`, served via auth-checked endpoint) |
 | Routes | `GET/POST /api/v1/routes`, `PATCH/DELETE /api/v1/routes/{id}`, `GET /api/v1/routes/{id}/compare/{trackId}` | Owner Session / Bearer | Planned water routes & survey transects (dive, kayak, boat, survey), leg magnetic bearings, and planned-vs-actual drift comparison |
 | Offline Packs | `POST /api/v1/packs/offline` | Session / Bearer / User Key | Queue regional `.pmtiles` offline chart pack build (`<= 10,000 km^2`) |
-| Exports | `POST /api/v1/exports`, `GET /api/v1/exports/{jobId}`, `GET /api/v1/releases` | Public / Scoped Key (`CF_NETCDF`/`COG` require auth) | GeoParquet, IHO B-12, CF-NetCDF, COG exports, anonymous public export polling, and DOI dataset releases |
+| Exports | `POST /api/v1/exports`, `GET /api/v1/exports/{jobId}`, `GET /api/v1/releases` | Public / Scoped Key (`CF_NETCDF`/`COG` in Phase 1.5 require auth) | GeoParquet 1.1 & IHO B-12 CSB exports (Day 1), gridded CF-NetCDF/COG (Phase 1.5), anonymous public export polling, and DOI dataset releases |
 | Contributors | `GET /api/v1/contributors/{displayName}` | Public | View public contributor profile and published traces |
 | Tiles | `GET https://tiles.opendepthmap.org/tiles/manifest.json`, `GET /tiles/private/{z}/{x}/{y}.mvt` | Public (manifest) / `read:private_vault` (MVT) | Regional `.pmtiles` shard manifest and dynamic private MVT vector tiles |
 | System & Stats | `GET /api/v1/stats/public`, `GET /api/v1/system/status`, `GET /health/live`, `GET /health/ready` | Public | Live coverage counters, active public feature/maintenance flags, and liveness/readiness probes |
@@ -181,8 +181,8 @@ Before any sounding enters public GeoParquet archives, OGC collections, or publi
 ### 7.1 IHO B-12 Crowd-Sourced Bathymetry (CSB)
 Defined in [iho-b12-csb-v1.json](../schemas/iho-b12-csb-v1.json). Exports both **IHO B-12 GeoJSON** (metadata header with `platform`, `trustedNode`, `crs`, `verticalDatum`, `license: "CC0-1.0"`, and `features` array with `depth`, `time`, `uncertainty`; single-track `scope=TRACK` outputs one GeoJSON file, while multi-track `scope=BBOX|RELEASE` outputs a `.zip` bundle containing one valid B-12 GeoJSON per `(track_id, verticalDatum)`) and flat **IHO B-12 CSV** (`LON,LAT,DEPTH,TIME,PLATFORM_NAME,UNCERTAINTY,VERTICAL_DATUM,QARTOD_FLAG`, with CSV formula-injection escaping on string columns). Mid-water `DIVE_PROFILE` tracks are excluded from IHO B-12 CSB exports.
 
-### 7.2 CF-1.10 NetCDF & Cloud-Optimized GeoTIFF (COG)
-Gridded bathymetry exports leave unmapped cells beyond `max_search_radius_m` strictly as `NODATA` (`NaN`) rather than interpolating across sparse gaps, enforce a maximum export size of `25,000,000` grid pixels (and `10,000 km^2` for offline packs), and include standardized metadata:
+### 7.2 CF-1.10 NetCDF & Cloud-Optimized GeoTIFF (COG) (Phase 1.5 Gridded Exports)
+Reserved for Phase 1.5 once dense community coverage warrants gridded bathymetric rasters (requests on Day 1 return `501 Not Implemented` / `FORMAT_NOT_ENABLED`). Gridded bathymetry exports leave unmapped cells beyond `max_search_radius_m` strictly as `NODATA` (`NaN`) rather than interpolating across sparse gaps, enforce a maximum export size of `25,000,000` grid pixels (and `10,000 km^2` for offline packs), and include standardized metadata:
 - **CF-1.10 NetCDF:** `Conventions = "CF-1.10"`, coordinate variables `lon` (`degrees_east`), `lat` (`degrees_north`), data variables `depth` (`standard_name = "sea_floor_depth_below_sea_surface"` or datum-specific `long_name`, `units = "m"`, `positive = "down"`), `depth_uncertainty` (`tvu_m`), `sounding_count`, plus global provenance attributes (`vertical_datum`, `gridding_method`, `grid_resolution_m`, `algorithm_version`, `doi`, `license`, `disclaimer`).
 - **COG:** Single-band or multi-band float32 GeoTIFF (`Band 1: depth_m`, `Band 2: tvu_m`, `Band 3: sounding_count`), `EPSG:4326` or `EPSG:3857`, internal tiling `512x512`, `DEFLATE` compression, internal overviews, and GDAL metadata tags matching CF-NetCDF provenance.
 
